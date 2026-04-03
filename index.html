@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <title>泰文生字朗讀按鈕（匯出 TXT + 重溫區域）</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding:20px; background:#f7f7f7; }
+    h1 { font-size:18px; margin-bottom:10px; }
+    .grid { display:flex; flex-wrap:wrap; gap:8px; }
+#buttons {
+  max-height: 300px;   /* 限制高度 */
+  overflow-y: auto;    /* 出現垂直捲動條 */
+  border: 1px solid #ccc;
+  padding: 5px;
+  background: #fff;
+}
+
+    .grid button {
+      padding:10px 14px;
+      border-radius:6px;
+      border:1px solid #ccc;
+      background:#fff;
+      cursor:pointer;
+      text-align:center;
+    }
+    .grid button span {
+      display:block;
+      font-size:12px;
+      color:#666;
+      margin-top:4px;
+    }
+    #reviewArea {
+      margin-top:20px;
+      min-height:120px;
+      border:2px dashed #999;
+      padding:10px;
+      background:#fafafa;
+  max-height: 200px;   /* 限制高度 */
+  overflow-y: auto;    /* 出現垂直捲動條 */
+
+    }
+    .reviewBtn {
+      margin:5px;
+      padding:10px 14px;
+      border-radius:6px;
+      border:1px solid #666;
+      background:#ffe;
+      cursor:pointer;
+    }
+    textarea { width:100%; height:150px; margin-top:20px; padding:10px; font-family:monospace; }
+    #generateBtn, #saveBtn, #updateBtn
+    #saveBtn {
+      font-weight: bold;
+      color: #000;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+  <h1>點擊按鈕朗讀泰文生字</h1>
+
+  <div class="grid" id="buttons" ondragover="event.preventDefault()" ondrop="handleDropToMain(event)"></div>
+
+
+<h2>重溫區域（拖曳生字到這裡）</h2>
+<button id="clearReviewBtn">清除重溫區域</button>
+<div id="reviewArea" ondragover="event.preventDefault()" ondrop="handleDropToReview(event)">
+  <p>把想要重溫的生字拖到這裡</p>
+</div>
+
+  <h2>新增泰文與中文解釋</h2>
+  <textarea id="inputArea"></textarea>
+  <button id="generateBtn">生成按鈕</button>
+  <button id="saveBtn">儲存按鈕</button>
+
+
+  <h2>編輯目前生字清單</h2>
+  <textarea id="editArea"></textarea>
+  <button id="updateBtn">更新清單</button>
+
+  <script>
+    let words = [
+      { th: "ดูหนัง", zh: "看電影" },
+      { th: "เรียน", zh: "學習" },
+      { th: "เป็นหมอ", zh: "當醫生" },
+      { th: "พักผ่อน", zh: "休息" }
+    ];
+    let reviewWords = [];
+if (localStorage.getItem("reviewWords")) {
+  try { reviewWords = JSON.parse(localStorage.getItem("reviewWords")); } catch(e) {}
+}
+
+    const buttonsDiv = document.getElementById('buttons');
+    const reviewArea = document.getElementById('reviewArea');
+
+    if (localStorage.getItem("thaiWords")) {
+      try { words = JSON.parse(localStorage.getItem("thaiWords")); } catch(e) {}
+    }
+
+function speak(text) {
+  try {
+    const audio = new Audio(
+      "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" +
+      encodeURIComponent(text) +
+      "&tl=th"
+    );
+    audio.play();
+  } catch (err) {
+    console.error("Google 語音播放失敗:", err);
+  }
+}
+
+
+    function renderButtons() {
+      buttonsDiv.innerHTML = '';
+      words.forEach((w, index) => {
+        const speakBtn = document.createElement('button');
+        speakBtn.innerHTML = `${w.th}<span>${w.zh}</span>`;
+        speakBtn.setAttribute("draggable", "true");
+        speakBtn.dataset.index = index;
+        speakBtn.dataset.zone = "main";
+        speakBtn.addEventListener("dragstart", handleDragStart);
+
+        // 左鍵點擊：朗讀 + 複製泰文
+        speakBtn.addEventListener('click', () => {
+          speak(w.th);
+          navigator.clipboard.writeText(w.th).catch(err => {
+            console.error("複製失敗:", err);
+          });
+        });
+
+        buttonsDiv.appendChild(speakBtn);
+      });
+      updateEditArea();
+      renderReviewButtons();
+    }
+
+    function renderReviewButtons() {
+      reviewArea.innerHTML = '<p>把想要重溫的生字拖到這裡</p>';
+      reviewWords.forEach((w, index) => {
+        const reviewBtn = document.createElement("button");
+        reviewBtn.className = "reviewBtn";
+        reviewBtn.textContent = `${w.th} (${w.zh})`;
+        reviewBtn.setAttribute("draggable", "true");
+        reviewBtn.dataset.index = index;
+        reviewBtn.dataset.zone = "review";
+        reviewBtn.addEventListener("dragstart", handleDragStart);
+
+        reviewBtn.addEventListener("click", () => {
+          speak(w.th);
+          navigator.clipboard.writeText(w.th).catch(err => {
+            console.error("複製失敗:", err);
+          });
+        });
+
+        reviewArea.appendChild(reviewBtn);
+      });
+    }
+
+    function updateEditArea() {
+      document.getElementById('editArea').value = JSON.stringify(words, null, 2);
+    }
+
+    function handleDragStart(e) {
+      e.dataTransfer.setData("index", e.target.dataset.index);
+      e.dataTransfer.setData("zone", e.target.dataset.zone);
+    }
+
+    function handleDropToReview(e) {
+      const index = e.dataTransfer.getData("index");
+      const zone = e.dataTransfer.getData("zone");
+      if (index !== "" && zone === "main") {
+        const w = words[index];
+        if (!reviewWords.some(r => r.th === w.th)) {
+          reviewWords.push(w);
+          renderReviewButtons();
+        }
+      }
+    }
+
+    function handleDropToMain(e) {
+      const index = e.dataTransfer.getData("index");
+      const zone = e.dataTransfer.getData("zone");
+      if (zone === "review") {
+        reviewWords.splice(index, 1);
+        renderReviewButtons();
+      }
+    }
+
+    document.getElementById('generateBtn').addEventListener('click', () => {
+      const input = document.getElementById('inputArea').value.trim();
+      if (!input) return;
+      try {
+        const arr = JSON.parse("[" + input + "]");
+        if (Array.isArray(arr)) {
+          words = words.concat(arr);
+          renderButtons();
+        } else {
+          alert("格式錯誤，必須是陣列");
+        }
+      } catch (e) {
+        alert("JSON 格式錯誤，請使用 { \"th\": \"泰文\", \"zh\": \"中文\" } 的格式");
+      }
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      localStorage.setItem("thaiWords", JSON.stringify(words));
+ localStorage.setItem("reviewWords", JSON.stringify(reviewWords)); // 新增這行
+      alert("已儲存，下次開啟仍會看到這些按鈕！");
+    });
+
+    document.getElementById('updateBtn').addEventListener('click', () => {
+      try {
+        const newWords = JSON.parse(document.getElementById('editArea').value);
+        if (Array.isArray(newWords)) {
+          words = newWords;
+          renderButtons();
+        } else {
+          alert("格式錯誤，必須是陣列");
+        }
+      } catch(e) {
+        alert("JSON 格式錯誤，請檢查編輯內容");
+      }
+    });
+
+
+document.getElementById('clearReviewBtn').addEventListener('click', () => {
+  reviewWords = [];              // 清空陣列
+  renderReviewButtons();         // 重新渲染畫面
+  localStorage.removeItem("reviewWords"); // 如果有存檔，也一併清除
+});
+
+
+
+// 加入拖曳提示效果
+reviewArea.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  reviewArea.classList.add("dragover");
+});
+reviewArea.addEventListener("dragleave", () => {
+  reviewArea.classList.remove("dragover");
+});
+reviewArea.addEventListener("drop", (e) => {
+  reviewArea.classList.remove("dragover");
+  handleDropToReview(e);
+});
+
+
+
+
+
+    window.addEventListener("beforeunload", function (e) {
+      const saved = localStorage.getItem("thaiWords");
+      if (JSON.stringify(words) !== saved) {
+        e.preventDefault();
+        e.returnValue = "尚未儲存變更，是否要離開？";
+      }
+    });
+
+    renderButtons();
+  </script>
+</body>
+</html>
