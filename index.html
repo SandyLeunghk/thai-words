@@ -100,15 +100,26 @@ if (localStorage.getItem("reviewWords")) {
     }
 
 function speak(text) {
-  try {
-    const audio = new Audio(
-      "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" +
-      encodeURIComponent(text) +
-      "&tl=th"
-    );
-    audio.play();
-  } catch (err) {
-    console.error("Google 語音播放失敗:", err);
+  if ('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // 設定泰文語音（iPhone 和大部分瀏覽器都支援泰文）
+    utterance.lang = 'th-TH';   // 泰文泰國
+    
+    // 可選：調整速度和音調（0.8~1.2 之間比較自然）
+    utterance.rate = 1.0;   // 速度（1.0 是正常）
+    utterance.pitch = 1.0;  // 音調
+
+    // 嘗試找泰文語音（iOS 上效果更好）
+    const voices = speechSynthesis.getVoices();
+    const thaiVoice = voices.find(voice => voice.lang.includes('th'));
+    if (thaiVoice) {
+      utterance.voice = thaiVoice;
+    }
+
+    speechSynthesis.speak(utterance);
+  } else {
+    alert("你的瀏覽器不支援語音朗讀功能");
   }
 }
 
@@ -260,6 +271,7 @@ reviewArea.addEventListener("drop", (e) => {
     });
 
     renderButtons();
+speechSynthesis.getVoices();
   </script>
 </body>
 </html>
