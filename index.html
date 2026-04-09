@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>泰文生字朗讀（手機滑動優化）</title>
+<title>泰文生字朗讀（手機橫向滑動優化）</title>
 <style>
-  :root{--gap:10px;--btn-radius:10px}
+  :root{--gap:10px;--card-radius:10px}
   body {
     font-family: Arial, sans-serif;
     padding: 12px;
@@ -19,51 +19,50 @@
     display:flex;
     gap:var(--gap);
     overflow-x:auto;
-    padding:10px;
+    padding:12px;
     -webkit-overflow-scrolling: touch; /* iOS 慣性滾動 */
     scroll-behavior: smooth;
-    touch-action: pan-y; /* 允許垂直捲動，水平滑動由容器處理 */
     background: #fff;
-    border-radius:8px;
-    border:1px solid #e0e0e0;
+    border-radius: 10px;
+    border: 1px solid #e6e6e6;
+    touch-action: pan-y; /* 允許垂直滾動，水平由容器處理 */
   }
-  /* 單字按鈕樣式 */
+  .scroll-row::-webkit-scrollbar { height:8px; }
   .word-card {
-    flex: 0 0 auto; /* 固定寬度，不換行 */
+    flex: 0 0 auto;
     min-width: 160px;
     max-width: 220px;
-    padding:12px 14px;
-    border-radius:var(--btn-radius);
-    border:1px solid #ddd;
-    background:#fff;
-    box-shadow:0 1px 3px rgba(0,0,0,0.04);
-    cursor:pointer;
-    text-align:left;
+    padding: 12px 14px;
+    border-radius: var(--card-radius);
+    border: 1px solid #ddd;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    cursor: pointer;
+    text-align: left;
     -webkit-user-select: none;
     user-select: none;
-    position:relative;
+    position: relative;
+    box-sizing: border-box;
   }
   .word-card .th { font-size:18px; font-weight:600; color:#222; }
   .word-card .zh { font-size:13px; color:#666; margin-top:6px; display:block; }
-  /* 右上加入/移除按鈕 */
   .toggle-review {
-    position:absolute;
-    right:8px;
-    top:8px;
-    width:30px;
-    height:30px;
-    border-radius:6px;
-    border:1px solid #ccc;
-    background:#fff;
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background: #fff;
     display:flex;
     align-items:center;
     justify-content:center;
     font-size:16px;
     line-height:1;
-    box-shadow:0 1px 2px rgba(0,0,0,0.06);
+    pointer-events: auto;
   }
   .toggle-review.added { background:#fff7d6; border-color:#d4a017; }
-  /* review 區域 */
   #reviewArea {
     margin-top:12px;
     padding:10px;
@@ -86,26 +85,22 @@
   button { margin-top:8px; padding:10px 14px; border-radius:6px; }
   #saveBtn { font-weight:700; box-shadow:0 0 8px rgba(0,0,0,0.12); }
   .small { padding:8px 10px; font-size:13px; }
-  @media(min-width:700px){
-    .word-card { min-width:180px; }
-  }
-  /* 滑鼠拖曳滾動提示 */
-  .scroll-row.dragging { cursor:grabbing; }
-  button:active { transform:translateY(1px); }
+  @media(min-width:700px){ .word-card { min-width:180px; } }
+  .scroll-row.dragging { cursor: grabbing; }
+  button:active { transform: translateY(1px); }
 </style>
 </head>
 <body>
 
 <h1>點擊按鈕朗讀泰文生字</h1>
 
-<!-- 橫向滾動列（滑動更輕鬆） -->
+<!-- 橫向滾動列 -->
 <div class="scroll-row" id="buttonsRow" aria-label="泰文生字列表"></div>
 
 <h2>重溫區域</h2>
 <div class="controls">
   <button id="clearReviewBtn" class="small">清除重溫區域</button>
   <button id="saveBtn" class="small">儲存按鈕</button>
-  <button id="exportBtn" class="small">匯出 TXT</button>
 </div>
 <div id="reviewArea"><p style="color:#666;margin:0">點按單字朗讀；點右上星號加入或移除重溫。</p></div>
 
@@ -141,7 +136,6 @@ let reviewWords = [];
 try { const s = localStorage.getItem("thaiWords"); if (s) words = JSON.parse(s); } catch(e){}
 try { const r = localStorage.getItem("reviewWords"); if (r) reviewWords = JSON.parse(r); } catch(e){}
 
-/* 元件 */
 const buttonsRow = document.getElementById('buttonsRow');
 const reviewArea = document.getElementById('reviewArea');
 
@@ -159,7 +153,7 @@ function speak(text){
       return;
     } catch(e){ console.warn('speechSynthesis error', e); }
   }
-  // 備援：Audio 播放
+  // 備援：Audio 播放（可能受 CORS 或自動播放限制）
   try {
     const url = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" + encodeURIComponent(text) + "&tl=th";
     const audio = new Audio();
@@ -237,7 +231,6 @@ function renderButtons(){
     let pressTimer = null;
     const longMs = 600;
     card.addEventListener('pointerdown', (e) => {
-      // 只在主要按鍵或觸控時啟動
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       pressTimer = setTimeout(() => {
         toggleReviewByIndex(idx);
@@ -336,12 +329,7 @@ document.getElementById('updateBtn').addEventListener('click', () => {
   } catch(e){ alert("JSON 格式錯誤，請檢查編輯內容"); }
 });
 
-document.getElementById('exportBtn').addEventListener('click', () => {
-  const content = JSON.stringify(words, null, 2);
-  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = "thai_words.txt"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-});
+
 
 document.getElementById('clearReviewBtn').addEventListener('click', () => {
   if (!reviewWords.length) return;
@@ -351,7 +339,7 @@ document.getElementById('clearReviewBtn').addEventListener('click', () => {
   try { localStorage.removeItem("reviewWords"); } catch(e){}
 });
 
-/* ===== 鼠標拖曳滾動（桌機友好） ===== */
+/* 鼠標拖曳滾動（桌機友好） */
 (function enableDragScroll(){
   let isDown = false, startX, scrollLeft;
   buttonsRow.addEventListener('mousedown', (e) => {
@@ -365,10 +353,18 @@ document.getElementById('clearReviewBtn').addEventListener('click', () => {
     if (!isDown) return;
     e.preventDefault();
     const x = e.pageX - buttonsRow.offsetLeft;
-    const walk = (x - startX) * 1; // scroll-fast
+    const walk = (x - startX) * 1;
     buttonsRow.scrollLeft = scrollLeft - walk;
   });
 })();
+
+/* beforeunload: warn if unsaved */
+window.addEventListener("beforeunload", function (e) {
+  try {
+    const saved = localStorage.getItem("thaiWords");
+    if (saved !== JSON.stringify(words)) { e.preventDefault(); e.returnValue = ""; }
+  } catch(e){}
+});
 
 /* 初始渲染 */
 renderButtons();
