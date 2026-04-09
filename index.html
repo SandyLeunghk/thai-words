@@ -3,117 +3,324 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>泰文生字（行動優化）</title>
+<title>泰文生字朗讀（美觀版）</title>
 <style>
-  :root{
-    --bg:#f6f8fb; --card:#fff; --muted:#6b7280; --accent:#2563eb;
-    --radius:12px; --gap:12px; --touch:48px;
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans",Arial;
-    background:var(--bg); color:#0f1724; -webkit-font-smoothing:antialiased;
-    padding:12px 12px 84px; /* bottom padding for sticky player */
-  }
-  header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
-  h1{font-size:18px;margin:0}
-  .subtitle{font-size:13px;color:var(--muted);margin:0}
-  /* list */
-  .list{display:flex;flex-direction:column;gap:10px}
-  .card{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:12px;border-radius:var(--radius);background:var(--card);
-    box-shadow:0 6px 18px rgba(2,6,23,0.06); border:1px solid rgba(2,6,23,0.04);
-    min-height:64px; gap:10px;
-  }
-  .left{display:flex;flex-direction:column;gap:6px}
-  .th{font-size:18px;font-weight:700}
-  .zh{font-size:14px;color:var(--muted)}
-  .actions{display:flex;gap:8px;align-items:center}
-  .btn{
-    height:var(--touch); min-width:var(--touch); padding:0 12px; border-radius:10px;
-    border:0;background:linear-gradient(90deg,var(--accent),#4f46e5); color:#fff;
-    font-weight:600; display:flex;align-items:center;justify-content:center; cursor:pointer;
-  }
-  .btn.ghost{background:#fff;color:var(--accent);border:1px solid rgba(37,99,235,0.12)}
-  .star{height:44px;width:44px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px}
-  .star.added{background:#fff7d6;border-color:#d4a017;color:#b45309}
-  /* sticky player bottom */
-  .player{
-    position:fixed; left:12px; right:12px; bottom:12px; height:60px;
-    background:linear-gradient(180deg,#fff,#fbfdff); border-radius:14px;
-    box-shadow:0 12px 30px rgba(2,6,23,0.12); display:flex;align-items:center;gap:12px;padding:8px 12px;
-    border:1px solid rgba(2,6,23,0.04); z-index:9999;
-  }
-  .player .play{height:44px;width:44px;border-radius:10px;background:linear-gradient(90deg,var(--accent),#7c3aed);color:#fff;border:0;display:flex;align-items:center;justify-content:center;font-size:18px}
-  .player .label{flex:1; font-size:14px; color:#0b1220; font-weight:600}
-  .player .sub{font-size:12px;color:var(--muted)}
-  /* form */
-  .form{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-  input[type="text"], textarea{
-    width:100%; padding:12px; border-radius:10px; border:1px solid rgba(2,6,23,0.06); font-size:14px;
-    background:#fff;
-  }
-  textarea{height:100px; font-family:inherit}
-  .row{display:flex;gap:8px}
-  .row .flex{flex:1}
-  /* small helpers */
-  .muted{color:var(--muted);font-size:13px}
-  @media(min-width:720px){
-    body{padding:18px 18px 100px}
-    .card{min-height:72px}
-  }
+:root{
+  --bg:#f3f6fb;
+  --card:#ffffff;
+  --muted:#7b8794;
+  --accent:#4f46e5;
+  --accent-2:#06b6d4;
+  --glass: rgba(255,255,255,0.6);
+  --radius:14px;
+  --gap:12px;
+  --shadow: 0 6px 18px rgba(18,38,63,0.08);
+}
+
+/* Reset & layout */
+*{box-sizing:border-box}
+html, body {
+  height: 100%;
+  min-height: 100dvh;
+  margin: 0;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+body{
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial;
+  background: linear-gradient(180deg,var(--bg),#eef4fb 60%);
+  color:#0f1724;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  padding:18px;
+}
+
+/* Header */
+header {
+  display:flex;
+  gap:12px;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:14px;
+}
+.title {
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+.logo {
+  width:48px;
+  height:48px;
+  border-radius:12px;
+  background: linear-gradient(135deg,var(--accent),var(--accent-2));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-weight:700;
+  box-shadow: 0 6px 18px rgba(79,70,229,0.18);
+}
+h1 { font-size:18px; margin:0; letter-spacing:0.2px; }
+p.lead { margin:0; color:var(--muted); font-size:13px; }
+
+/* Controls row */
+.controls {
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.search {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:var(--card);
+  padding:8px 10px;
+  border-radius:12px;
+  box-shadow: var(--shadow);
+  border:1px solid rgba(15,23,36,0.04);
+}
+.search input {
+  border:0;
+  outline:0;
+  font-size:14px;
+  width:180px;
+  background:transparent;
+}
+.btn {
+  background:linear-gradient(90deg,var(--accent),#7c3aed);
+  color:#fff;
+  border:0;
+  padding:9px 12px;
+  border-radius:10px;
+  font-weight:600;
+  box-shadow: 0 6px 18px rgba(79,70,229,0.12);
+  cursor:pointer;
+}
+.btn.ghost {
+  background:transparent;
+  color:var(--accent);
+  border:1px solid rgba(79,70,229,0.12);
+  box-shadow:none;
+}
+.small {
+  padding:8px 10px;
+  font-size:13px;
+  border-radius:10px;
+}
+
+/* Main layout */
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: calc(100dvh - 36px);
+}
+
+/* List container */
+.list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.85));
+  border-radius: var(--radius);
+  padding:12px;
+  box-shadow: var(--shadow);
+  border:1px solid rgba(15,23,36,0.04);
+}
+
+/* Card */
+.card {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px;
+  border-radius:12px;
+  background: linear-gradient(180deg,#fff,#fbfdff);
+  border:1px solid rgba(15,23,36,0.03);
+  margin-bottom:10px;
+  transition: transform .14s ease, box-shadow .14s ease;
+}
+.card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(18,38,63,0.08); }
+.left {
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+.avatar {
+  width:56px;
+  height:56px;
+  border-radius:10px;
+  background: linear-gradient(135deg,#eef2ff,#e6fffa);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  color:var(--accent);
+  font-size:18px;
+  flex-shrink:0;
+  border:1px solid rgba(79,70,229,0.06);
+}
+.meta {
+  display:flex;
+  flex-direction:column;
+}
+.th {
+  font-size:18px;
+  font-weight:700;
+  color:#0b1220;
+  letter-spacing:0.2px;
+}
+.zh {
+  font-size:13px;
+  color:var(--muted);
+  margin-top:6px;
+}
+
+/* Actions */
+.actions {
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.play {
+  width:44px;
+  height:44px;
+  border-radius:10px;
+  background:linear-gradient(90deg,var(--accent),#8b5cf6);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  border:0;
+  cursor:pointer;
+  box-shadow: 0 8px 20px rgba(79,70,229,0.12);
+}
+.star {
+  width:40px;
+  height:40px;
+  border-radius:10px;
+  background:transparent;
+  border:1px solid rgba(15,23,36,0.06);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  color:var(--muted);
+}
+.star.added {
+  background: linear-gradient(90deg,#fff7d6,#fff3d1);
+  border-color: rgba(212,160,23,0.18);
+  color:#b45309;
+}
+
+/* Review area */
+.review {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding:12px;
+  border-radius:12px;
+  background: linear-gradient(180deg,#ffffff,#fbfdff);
+  border:1px dashed rgba(15,23,36,0.06);
+  box-shadow: var(--shadow);
+}
+.review .chips {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.chip {
+  padding:8px 10px;
+  border-radius:999px;
+  background:#f8fafc;
+  border:1px solid rgba(15,23,36,0.04);
+  color:var(--muted);
+  font-size:13px;
+}
+
+/* Form area */
+.form {
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:10px;
+  align-items:start;
+}
+.form .full { grid-column: 1 / -1; }
+
+/* Footer small note */
+.note { color:var(--muted); font-size:13px; text-align:center; margin-top:6px; }
+
+/* Responsive */
+@media (max-width:720px){
+  .controls { flex-direction:column; align-items:flex-end; gap:8px; }
+  .search input { width:120px; }
+  .form { grid-template-columns: 1fr; }
+  .avatar { width:48px; height:48px; font-size:16px; }
+  .play { width:40px; height:40px; }
+}
 </style>
 </head>
 <body>
-
 <header>
-  <div>
-    <h1>泰文生字</h1>
-    <p class="subtitle">點擊播放；點星號加入重溫</p>
+  <div class="title">
+    <div class="logo">泰</div>
+    <div>
+      <h1>泰文生字朗讀</h1>
+      <p class="lead">點擊播放、儲存常用字、快速加入重溫</p>
+    </div>
   </div>
-  <div style="display:flex;gap:8px;align-items:center">
-    <button id="saveBtn" class="btn ghost" style="height:40px;padding:8px 10px">儲存</button>
-    <button id="exportBtn" class="btn ghost" style="height:40px;padding:8px 10px">匯出</button>
+
+  <div class="controls" aria-hidden="false">
+    <div class="search" role="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 21l-4.35-4.35" stroke="#94a3b8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11" cy="11" r="6" stroke="#94a3b8" stroke-width="1.6"/></svg>
+      <input id="filterInput" placeholder="搜尋中文或泰文" />
+    </div>
+
+    <button id="saveBtn" class="btn small">儲存</button>
   </div>
 </header>
 
 <main>
-  <section class="list" id="listArea" aria-label="生字列表"></section>
-
-  <section class="form" aria-label="新增">
-    <input id="thaiInput" placeholder="輸入泰文（手動）">
-    <input id="chineseInput" placeholder="輸入中文解釋（手動）">
-    <div class="row">
-      <button id="generateBtn" class="btn" style="flex:1">生成按鈕</button>
-      <button id="autoTranslateBtn" class="btn ghost" style="width:120px">自動翻譯</button>
-    </div>
-    <input id="chineseOnlyInput" placeholder="只輸入中文，自動翻譯成泰文">
+  <section class="list" id="listArea" aria-label="生字列表">
+    <!-- cards injected by JS -->
   </section>
 
-  <section style="margin-top:10px">
-    <textarea id="editArea" placeholder='進階編輯：格式 [{"th":"ดูหนัง","zh":"看電影"}]'></textarea>
-    <div class="row" style="margin-top:8px">
-      <button id="updateBtn" class="btn" style="flex:1">更新清單</button>
-      <button id="clearReviewBtn" class="btn ghost" style="width:120px">清除重溫</button>
+  <section class="review" id="reviewArea" aria-label="重溫區域">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <strong>重溫清單</strong>
+      <button id="clearReviewBtn" class="btn ghost small">清除</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <p class="note">點擊卡片播放；點星號加入或移除重溫。</p>
+  </section>
+
+  <section class="form" aria-label="新增與翻譯">
+    <input id="thaiInput" placeholder="輸入泰文 (手動)" />
+    <input id="chineseInput" placeholder="輸入中文解釋 (手動)" />
+    <div class="full" style="display:flex;gap:10px">
+      <button id="generateBtn" class="btn">生成按鈕</button>
+    </div>
+    <input id="chineseOnlyInput" placeholder="只輸入中文，自動翻譯成泰文" />
+    <div style="display:flex;gap:10px">
+      <button id="autoTranslateBtn" class="btn">自動翻譯並生成</button>
+      <button id="audioUnlock" class="btn ghost">啟用語音</button>
     </div>
   </section>
 
-  <p class="muted" style="margin-top:12px">提示：首次使用請按下底部「啟用語音」以解鎖播放權限。</p>
+  <section class="form full" style="margin-top:6px">
+    <textarea id="editArea" placeholder='進階編輯：格式範例 [{"th":"ดูหนัง","zh":"看電影"}]'></textarea>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button id="updateBtn" class="btn">更新清單</button>
+      <div style="flex:1"></div>
+    </div>
+  </section>
 </main>
 
-<!-- sticky player -->
-<div class="player" id="player">
-  <button id="playerPlay" class="play">▶</button>
-  <div>
-    <div class="label" id="playerLabel">尚未播放</div>
-    <div class="sub" id="playerSub">點選任一單字開始朗讀</div>
-  </div>
-  <button id="audioUnlock" class="btn ghost" style="height:40px;padding:8px 10px">啟用語音</button>
-</div>
-
 <script>
-/* ===== Data ===== */
+/* ===== Data & Load ===== */
 let words = [
   { th: "ดูหนัง", zh: "看電影" },
   { th: "เรียน", zh: "學習" },
@@ -121,22 +328,38 @@ let words = [
   { th: "พักผ่อน", zh: "休息" }
 ];
 let reviewWords = [];
-let current = null;
-
-/* load saved */
 try { const s = localStorage.getItem("thaiWords"); if (s) words = JSON.parse(s); } catch(e){}
 try { const r = localStorage.getItem("reviewWords"); if (r) reviewWords = JSON.parse(r); } catch(e){}
 
-/* elements */
+/* Elements */
 const listArea = document.getElementById('listArea');
-const playerLabel = document.getElementById('playerLabel');
-const playerSub = document.getElementById('playerSub');
-const playerPlay = document.getElementById('playerPlay');
+const chips = document.getElementById('chips');
+const reviewArea = document.getElementById('reviewArea');
+const filterInput = document.getElementById('filterInput');
 
-/* ===== Speech (priority) ===== */
-function speak(text){
+/* ===== Audio / Speech management (improved for mobile) ===== */
+const _sharedAudio = new Audio();
+_sharedAudio.crossOrigin = "anonymous";
+_sharedAudio.setAttribute('playsinline', '');
+let _audioContext = null;
+
+async function _ensureAudioContext() {
+  if (typeof AudioContext !== 'undefined' && !_audioContext) {
+    try {
+      _audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    } catch(e) { _audioContext = null; }
+  }
+  if (_audioContext && _audioContext.state === 'suspended') {
+    try { await _audioContext.resume(); } catch(e){}
+  }
+}
+
+async function speak(text){
+  text = String(text || '');
+  // 優先使用 Web Speech API
   if ('speechSynthesis' in window) {
     try {
+      await _ensureAudioContext();
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'th-TH';
@@ -145,107 +368,114 @@ function speak(text){
       u.volume = 1;
       window.speechSynthesis.speak(u);
       return;
-    } catch(e){ console.warn(e); }
+    } catch(e){ console.warn('speechSynthesis error', e); }
   }
-  // fallback
+
+  // fallback: 使用單一 audio 元件並等待 play promise
   try {
     const url = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" + encodeURIComponent(text) + "&tl=th";
-    const audio = new Audio();
-    audio.crossOrigin = "anonymous";
-    audio.src = url;
-    audio.setAttribute('playsinline','');
-    audio.play().catch(()=>{});
-  } catch(e){ console.error(e); }
+    _sharedAudio.src = url;
+    _sharedAudio.pause();
+    _sharedAudio.currentTime = 0;
+    await _ensureAudioContext();
+    await _sharedAudio.play().catch(err => { console.warn('audio play rejected', err); });
+  } catch(e){ console.error('fallback speak error', e); }
 }
 
-/* unlock audio button */
-document.getElementById('audioUnlock').addEventListener('click', () => {
-  try {
-    if ('speechSynthesis' in window) {
-      const u = new SpeechSynthesisUtterance('');
-      window.speechSynthesis.speak(u);
-    } else {
-      const a = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=');
-      a.setAttribute('playsinline','');
-      a.play().catch(()=>{});
-    }
-  } catch(e){}
-  document.getElementById('audioUnlock').textContent = '已啟用';
-  document.getElementById('audioUnlock').disabled = true;
-});
+/* One-touch unlock helper: try to resume audio context on first touch */
+function oneTouchUnlock() {
+  _ensureAudioContext();
+  window.removeEventListener('touchstart', oneTouchUnlock);
+}
+window.addEventListener('touchstart', oneTouchUnlock, {passive:true});
 
-/* ===== Render list (mobile friendly cards) ===== */
+/* ===== Render ===== */
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, (m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-function renderList(){
+function renderList(filter=''){
   listArea.innerHTML = '';
-  words.forEach((w, idx) => {
+  const q = filter.trim().toLowerCase();
+  const filtered = words.filter(w => {
+    if (!q) return true;
+    return (w.th && w.th.toLowerCase().includes(q)) || (w.zh && w.zh.toLowerCase().includes(q));
+  });
+
+  filtered.forEach((w, idx) => {
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
       <div class="left">
-        <div class="th">${escapeHtml(w.th)}</div>
-        <div class="zh">${escapeHtml(w.zh)}</div>
+        <div class="avatar">${escapeHtml((w.th || '').slice(0,2))}</div>
+        <div class="meta">
+          <div class="th">${escapeHtml(w.th)}</div>
+          <div class="zh">${escapeHtml(w.zh)}</div>
+        </div>
       </div>
       <div class="actions">
-        <button class="star" aria-label="加入重溫">${isInReview(w) ? '★' : '☆'}</button>
-        <button class="btn playBtn" aria-label="播放">▶</button>
+        <button class="play" title="播放" aria-label="播放">▶</button>
+        <button class="star" title="加入重溫" aria-label="加入重溫">☆</button>
       </div>
     `;
-    // play button
-    card.querySelector('.playBtn').addEventListener('click', (e) => {
+
+    // play
+    card.querySelector('.play').addEventListener('click', (e) => {
       e.stopPropagation();
-      current = w;
-      playerLabel.textContent = w.th;
-      playerSub.textContent = w.zh;
       speak(w.th);
-      try { navigator.vibrate && navigator.vibrate(20); } catch(e){}
+      try { navigator.clipboard.writeText(w.th).catch(()=>{}); } catch(e){}
     });
+
     // star toggle
-    const star = card.querySelector('.star');
-    if (isInReview(w)) star.classList.add('added');
-    star.addEventListener('click', (e) => {
+    const starBtn = card.querySelector('.star');
+    if (isInReview(w)) starBtn.classList.add('added'), starBtn.textContent = '★';
+    starBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleReviewByWord(w);
-      renderList();
     });
-    // card tap also plays
+
+    // card click: speak
     card.addEventListener('click', () => {
-      current = w;
-      playerLabel.textContent = w.th;
-      playerSub.textContent = w.zh;
       speak(w.th);
     });
+
     listArea.appendChild(card);
   });
+
   updateEditArea();
   renderReviewChips();
+  // adjust list height after DOM updates
+  setTimeout(adjustListHeight, 50);
 }
 
 /* ===== Review chips ===== */
 function renderReviewChips(){
-  // show count in player sub if any
-  const count = reviewWords.length;
-  if (count) playerSub.textContent = `${count} 個重溫`;
+  chips.innerHTML = '';
+  if (!reviewWords.length) return;
+  reviewWords.forEach(w => {
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.textContent = `${w.th} — ${w.zh}`;
+    c.addEventListener('click', () => speak(w.th));
+    chips.appendChild(c);
+  });
 }
 
-/* ===== helpers ===== */
+/* ===== Helpers ===== */
 function isInReview(item){ return reviewWords.some(r => r.th === item.th); }
 function toggleReviewByWord(w){
   const idx = reviewWords.findIndex(r => r.th === w.th);
   if (idx === -1) reviewWords.push(w); else reviewWords.splice(idx,1);
-  try { localStorage.setItem("reviewWords", JSON.stringify(reviewWords)); } catch(e){}
+  renderList(filterInput.value);
 }
 
-/* ===== actions ===== */
+/* ===== Actions ===== */
 document.getElementById('generateBtn').addEventListener('click', () => {
   const th = document.getElementById('thaiInput').value.trim();
   const zh = document.getElementById('chineseInput').value.trim();
   if (!th || !zh) { alert("請輸入泰文與中文解釋"); return; }
-  words.unshift({ th, zh }); // 新增到最上方
+  words.push({ th, zh });
   document.getElementById('thaiInput').value = '';
   document.getElementById('chineseInput').value = '';
-  renderList();
+  renderList(filterInput.value);
 });
 
 document.getElementById('autoTranslateBtn').addEventListener('click', async () => {
@@ -261,11 +491,15 @@ document.getElementById('autoTranslateBtn').addEventListener('click', async () =
     let th = "";
     if (Array.isArray(data) && Array.isArray(data[0]) && Array.isArray(data[0][0])) th = data[0][0][0] || "";
     if (!th) { alert("翻譯失敗，請改用手動輸入泰文"); return; }
-    words.unshift({ th, zh });
+    words.push({ th, zh });
     document.getElementById('chineseOnlyInput').value = '';
-    renderList();
-  } catch(e) { console.error(e); alert("翻譯失敗"); }
-  finally { btn.disabled = false; btn.textContent = '自動翻譯'; }
+    renderList(filterInput.value);
+  } catch(e) {
+    console.error(e);
+    alert("翻譯失敗，請稍後再試");
+  } finally {
+    btn.disabled = false; btn.textContent = '自動翻譯並生成';
+  }
 });
 
 document.getElementById('saveBtn').addEventListener('click', () => {
@@ -274,36 +508,31 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   alert("已儲存");
 });
 
-document.getElementById('exportBtn').addEventListener('click', () => {
-  const content = JSON.stringify(words, null, 2);
-  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = "thai_words.txt"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-});
 
 document.getElementById('updateBtn').addEventListener('click', () => {
   try {
     const newWords = JSON.parse(document.getElementById('editArea').value);
     if (!Array.isArray(newWords)) { alert("格式錯誤，必須是陣列"); return; }
+    for (const item of newWords) {
+      if (typeof item.th !== 'string' || typeof item.zh !== 'string') { alert("每個項目必須包含 th 與 zh 字串欄位"); return; }
+    }
     words = newWords;
-    renderList();
-  } catch(e){ alert("JSON 格式錯誤"); }
+    renderList(filterInput.value);
+  } catch(e){ alert("JSON 格式錯誤，請檢查編輯內容"); }
 });
 
 document.getElementById('clearReviewBtn').addEventListener('click', () => {
+  if (!reviewWords.length) return;
   if (!confirm("確定要清除重溫區域嗎？")) return;
   reviewWords = [];
+  renderReviewChips();
   try { localStorage.removeItem("reviewWords"); } catch(e){}
-  renderList();
 });
 
-/* player controls */
-playerPlay.addEventListener('click', () => {
-  if (!current) { alert("請先選擇一個單字播放"); return; }
-  speak(current.th);
-});
+/* Filter */
+filterInput.addEventListener('input', (e) => renderList(e.target.value));
 
-/* edit area helper */
+/* Edit area helper */
 function updateEditArea(){ document.getElementById('editArea').value = JSON.stringify(words, null, 2); }
 
 /* beforeunload warning */
@@ -314,7 +543,75 @@ window.addEventListener("beforeunload", function (e) {
   } catch(e){}
 });
 
-/* initial render */
+/* ===== Improved audio unlock button (replaces older implementation) ===== */
+document.getElementById('audioUnlock').addEventListener('click', async () => {
+  const btn = document.getElementById('audioUnlock');
+  try {
+    await _ensureAudioContext();
+
+    if ('speechSynthesis' in window) {
+      const u = new SpeechSynthesisUtterance('เริ่ม'); // 短字串以確保手勢解鎖
+      u.lang = 'th-TH';
+      u.rate = 1;
+      u.volume = 0.01;
+      window.speechSynthesis.speak(u);
+      setTimeout(() => {
+        btn.textContent = '已啟用';
+        btn.disabled = true;
+      }, 300);
+      return;
+    }
+
+    if (_audioContext) {
+      const buffer = _audioContext.createBuffer(1, 1, _audioContext.sampleRate);
+      const src = _audioContext.createBufferSource();
+      src.buffer = buffer;
+      src.connect(_audioContext.destination);
+      src.start(0);
+      btn.textContent = '已啟用';
+      btn.disabled = true;
+      return;
+    }
+
+    const a = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=');
+    a.setAttribute('playsinline','');
+    await a.play().catch(()=>{});
+    btn.textContent = '已啟用';
+    btn.disabled = true;
+  } catch(e){
+    console.warn('audio unlock failed', e);
+    btn.textContent = '已啟用';
+    btn.disabled = true;
+  }
+});
+
+/* ===== Dynamic list height adjustment to avoid excessive mobile scrolling ===== */
+function adjustListHeight() {
+  const header = document.querySelector('header');
+  const review = document.getElementById('reviewArea');
+  const formFull = document.querySelector('.form.full') || document.querySelector('.form');
+  const list = document.getElementById('listArea');
+  if (!list) return;
+
+  const vh = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+  const headerH = header ? header.getBoundingClientRect().height : 0;
+  const reviewH = review ? review.getBoundingClientRect().height : 0;
+  const formH = formFull ? formFull.getBoundingClientRect().height : 0;
+  const gapTotal = 18 + 14 + 6;
+
+  const maxH = Math.max(120, Math.floor(vh - headerH - reviewH - formH - gapTotal));
+  list.style.maxHeight = maxH + 'px';
+}
+
+window.addEventListener('load', adjustListHeight);
+window.addEventListener('resize', adjustListHeight);
+window.addEventListener('orientationchange', adjustListHeight);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', adjustListHeight);
+  window.visualViewport.addEventListener('scroll', adjustListHeight);
+}
+
+/* Initial render */
 renderList();
 updateEditArea();
 </script>
