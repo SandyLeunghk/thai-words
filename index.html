@@ -1,277 +1,347 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <title>泰文生字朗讀按鈕（匯出 TXT + 重溫區域）</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding:20px; background:#f7f7f7; }
-    h1 { font-size:18px; margin-bottom:10px; }
-    .grid { display:flex; flex-wrap:wrap; gap:8px; }
-#buttons {
-  max-height: 300px;   /* 限制高度 */
-  overflow-y: auto;    /* 出現垂直捲動條 */
-  border: 1px solid #ccc;
-  padding: 5px;
-  background: #fff;
-}
-
-    .grid button {
-      padding:10px 14px;
-      border-radius:6px;
-      border:1px solid #ccc;
-      background:#fff;
-      cursor:pointer;
-      text-align:center;
-    }
-    .grid button span {
-      display:block;
-      font-size:12px;
-      color:#666;
-      margin-top:4px;
-    }
-    #reviewArea {
-      margin-top:20px;
-      min-height:120px;
-      border:2px dashed #999;
-      padding:10px;
-      background:#fafafa;
-  max-height: 200px;   /* 限制高度 */
-  overflow-y: auto;    /* 出現垂直捲動條 */
-
-    }
-    .reviewBtn {
-      margin:5px;
-      padding:10px 14px;
-      border-radius:6px;
-      border:1px solid #666;
-      background:#ffe;
-      cursor:pointer;
-    }
-    textarea { width:100%; height:150px; margin-top:20px; padding:10px; font-family:monospace; }
-    #generateBtn, #saveBtn, #updateBtn
-    #saveBtn {
-      font-weight: bold;
-      color: #000;
-      border-radius: 8px;
-      cursor: pointer;
-      box-shadow: 0 0 8px rgba(0,0,0,0.3);
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>泰文生字朗讀（手機優化版）</title>
+<style>
+  :root{--gap:8px;--btn-radius:8px}
+  body {
+    font-family: Arial, sans-serif;
+    padding: 10px;
+    background: #f7f7f7;
+    margin: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1,h2 { font-size:16px; margin:12px 0 6px; text-align:center; }
+  .grid { display:flex; flex-wrap:wrap; gap:var(--gap); justify-content:center; }
+  .grid button, .reviewBtn {
+    flex: 1 1 45%;
+    min-width:120px;
+    padding:14px;
+    font-size:14px;
+    border-radius:var(--btn-radius);
+    border:1px solid #ccc;
+    background:#fff;
+    cursor:pointer;
+    text-align:center;
+    box-sizing:border-box;
+  }
+  .grid button span { display:block; font-size:12px; color:#666; margin-top:4px; }
+  #buttons, #reviewArea {
+    max-height:40vh;
+    overflow-y:auto;
+    border:1px solid #ccc;
+    padding:8px;
+    background:#fff;
+    border-radius:6px;
+  }
+  #reviewArea { margin-top:10px; border:2px dashed #999; background:#fafafa; }
+  .controls { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:8px; }
+  input[type="text"], textarea {
+    width:100%;
+    padding:10px;
+    margin-top:8px;
+    font-size:14px;
+    border-radius:6px;
+    border:1px solid #ccc;
+    box-sizing:border-box;
+  }
+  textarea { height:120px; font-family:monospace; }
+  button { margin-top:8px; padding:10px 14px; border-radius:6px; }
+  #saveBtn { font-weight:700; box-shadow:0 0 8px rgba(0,0,0,0.12); }
+  .small { padding:8px 10px; font-size:13px; }
+  @media(min-width:700px){
+    .grid button, .reviewBtn { flex:1 1 22%; }
+  }
+  /* touch feedback */
+  button:active { transform:translateY(1px); }
+</style>
 </head>
 <body>
-  <h1>點擊按鈕朗讀泰文生字</h1>
 
-  <div class="grid" id="buttons" ondragover="event.preventDefault()" ondrop="handleDropToMain(event)"></div>
+<h1>點擊按鈕朗讀泰文生字</h1>
+<div class="grid" id="buttons"></div>
 
+<h2>重溫區域</h2>
+<div class="controls">
+  <button id="clearReviewBtn" class="small">清除重溫區域</button>
+  <button id="saveBtn" class="small">儲存按鈕</button>
+</div>
+<div id="reviewArea"><p>長按按鈕加入或移除</p></div>
 
-<h2>重溫區域（拖曳生字到這裡）</h2>
-<button id="clearReviewBtn">清除重溫區域</button>
-<div id="reviewArea" ondragover="event.preventDefault()" ondrop="handleDropToReview(event)">
-  <p>把想要重溫的生字拖到這裡</p>
+<h2>新增泰文與中文解釋</h2>
+<input type="text" id="thaiInput" placeholder="輸入泰文">
+<input type="text" id="chineseInput" placeholder="輸入中文解釋">
+<div class="controls">
+  <button id="generateBtn">生成按鈕</button>
 </div>
 
-  <h2>新增泰文與中文解釋</h2>
-  <textarea id="inputArea"></textarea>
-  <button id="generateBtn">生成按鈕</button>
-  <button id="saveBtn">儲存按鈕</button>
+<h2>新增中文解釋（自動翻譯成泰文）</h2>
+<input type="text" id="chineseOnlyInput" placeholder="只輸入中文解釋，按下自動翻譯並生成按鈕">
+<div class="controls">
+  <button id="autoTranslateBtn">自動翻譯並生成按鈕</button>
+</div>
 
-
-  <h2>編輯目前生字清單</h2>
-  <textarea id="editArea"></textarea>
+<h2>編輯目前生字清單（進階）</h2>
+<textarea id="editArea" placeholder='格式範例: [{"th":"ดูหนัง","zh":"看電影"}]'></textarea>
+<div class="controls">
   <button id="updateBtn">更新清單</button>
+</div>
 
-  <script>
-    let words = [
-      { th: "ดูหนัง", zh: "看電影" },
-      { th: "เรียน", zh: "學習" },
-      { th: "เป็นหมอ", zh: "當醫生" },
-      { th: "พักผ่อน", zh: "休息" }
-    ];
-    let reviewWords = [];
-if (localStorage.getItem("reviewWords")) {
-  try { reviewWords = JSON.parse(localStorage.getItem("reviewWords")); } catch(e) {}
-}
+<script>
+/* ===== data & load ===== */
+let words = [
+  { th: "ดูหนัง", zh: "看電影" },
+  { th: "เรียน", zh: "學習" },
+  { th: "เป็นหมอ", zh: "當醫生" },
+  { th: "พักผ่อน", zh: "休息" }
+];
+let reviewWords = [];
 
-    const buttonsDiv = document.getElementById('buttons');
-    const reviewArea = document.getElementById('reviewArea');
+/* load saved */
+try {
+  const saved = localStorage.getItem("thaiWords");
+  if (saved) words = JSON.parse(saved);
+} catch(e){ console.warn("load thaiWords failed", e); }
+try {
+  const savedR = localStorage.getItem("reviewWords");
+  if (savedR) reviewWords = JSON.parse(savedR);
+} catch(e){ console.warn("load reviewWords failed", e); }
 
-    if (localStorage.getItem("thaiWords")) {
-      try { words = JSON.parse(localStorage.getItem("thaiWords")); } catch(e) {}
-    }
+/* elements */
+const buttonsDiv = document.getElementById('buttons');
+const reviewArea = document.getElementById('reviewArea');
 
-function speak(text) {
-  if ('speechSynthesis' in window) {
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // 設定泰文語音（iPhone 和大部分瀏覽器都支援泰文）
-    utterance.lang = 'th-TH';   // 泰文泰國
-    
-    // 可選：調整速度和音調（0.8~1.2 之間比較自然）
-    utterance.rate = 1.0;   // 速度（1.0 是正常）
-    utterance.pitch = 1.0;  // 音調
-
-    // 嘗試找泰文語音（iOS 上效果更好）
-    const voices = speechSynthesis.getVoices();
-    const thaiVoice = voices.find(voice => voice.lang.includes('th'));
-    if (thaiVoice) {
-      utterance.voice = thaiVoice;
-    }
-
-    speechSynthesis.speak(utterance);
-  } else {
-    alert("你的瀏覽器不支援語音朗讀功能");
+/* ===== utilities ===== */
+function speak(text){
+  try {
+    const audio = new Audio(
+      "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" +
+      encodeURIComponent(text) +
+      "&tl=th"
+    );
+    audio.play().catch(()=>{/* ignore play errors */});
+  } catch(err){
+    console.error("TTS error", err);
   }
 }
+function saveAll(){
+  try { localStorage.setItem("thaiWords", JSON.stringify(words)); } catch(e){}
+  try { localStorage.setItem("reviewWords", JSON.stringify(reviewWords)); } catch(e){}
+}
 
+/* ===== render ===== */
+function renderButtons(){
+  buttonsDiv.innerHTML = '';
+  if (!words.length) {
+    buttonsDiv.innerHTML = '<p style="color:#666">目前沒有生字，請新增。</p>';
+    updateEditArea();
+    renderReviewButtons();
+    return;
+  }
+  words.forEach((w, index) => {
+    const btn = document.createElement('button');
+    btn.innerHTML = `${escapeHtml(w.th)}<span>${escapeHtml(w.zh)}</span>`;
+    btn.dataset.index = index;
 
-    function renderButtons() {
-      buttonsDiv.innerHTML = '';
-      words.forEach((w, index) => {
-        const speakBtn = document.createElement('button');
-        speakBtn.innerHTML = `${w.th}<span>${w.zh}</span>`;
-        speakBtn.setAttribute("draggable", "true");
-        speakBtn.dataset.index = index;
-        speakBtn.dataset.zone = "main";
-        speakBtn.addEventListener("dragstart", handleDragStart);
+    // tap: speak + copy
+    btn.addEventListener('click', () => {
+      speak(w.th);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(w.th).catch(()=>{});
+      }
+    });
 
-        // 左鍵點擊：朗讀 + 複製泰文
-        speakBtn.addEventListener('click', () => {
-          speak(w.th);
-          navigator.clipboard.writeText(w.th).catch(err => {
-            console.error("複製失敗:", err);
-          });
-        });
+    // long-press / contextmenu to add to review (works on mobile as long-press)
+    btn.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (!reviewWords.some(r => r.th === w.th)) {
+        reviewWords.push(w);
+        renderReviewButtons();
+      }
+    });
 
-        buttonsDiv.appendChild(speakBtn);
-      });
-      updateEditArea();
-      renderReviewButtons();
-    }
-
-    function renderReviewButtons() {
-      reviewArea.innerHTML = '<p>把想要重溫的生字拖到這裡</p>';
-      reviewWords.forEach((w, index) => {
-        const reviewBtn = document.createElement("button");
-        reviewBtn.className = "reviewBtn";
-        reviewBtn.textContent = `${w.th} (${w.zh})`;
-        reviewBtn.setAttribute("draggable", "true");
-        reviewBtn.dataset.index = index;
-        reviewBtn.dataset.zone = "review";
-        reviewBtn.addEventListener("dragstart", handleDragStart);
-
-        reviewBtn.addEventListener("click", () => {
-          speak(w.th);
-          navigator.clipboard.writeText(w.th).catch(err => {
-            console.error("複製失敗:", err);
-          });
-        });
-
-        reviewArea.appendChild(reviewBtn);
-      });
-    }
-
-    function updateEditArea() {
-      document.getElementById('editArea').value = JSON.stringify(words, null, 2);
-    }
-
-    function handleDragStart(e) {
-      e.dataTransfer.setData("index", e.target.dataset.index);
-      e.dataTransfer.setData("zone", e.target.dataset.zone);
-    }
-
-    function handleDropToReview(e) {
-      const index = e.dataTransfer.getData("index");
-      const zone = e.dataTransfer.getData("zone");
-      if (index !== "" && zone === "main") {
-        const w = words[index];
+    // small "add to review" affordance for touch users: double-tap adds
+    let lastTap = 0;
+    btn.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if (now - lastTap < 300) {
         if (!reviewWords.some(r => r.th === w.th)) {
           reviewWords.push(w);
           renderReviewButtons();
         }
       }
-    }
+      lastTap = now;
+    });
 
-    function handleDropToMain(e) {
-      const index = e.dataTransfer.getData("index");
-      const zone = e.dataTransfer.getData("zone");
-      if (zone === "review") {
+    buttonsDiv.appendChild(btn);
+  });
+  updateEditArea();
+  renderReviewButtons();
+}
+
+function renderReviewButtons(){
+  reviewArea.innerHTML = '<p style="color:#666">長按按鈕加入或移除</p>';
+  if (!reviewWords.length) return;
+  reviewWords.forEach((w, index) => {
+    const rb = document.createElement('button');
+    rb.className = 'reviewBtn';
+    rb.textContent = `${w.th} (${w.zh})`;
+
+    rb.addEventListener('click', () => {
+      speak(w.th);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(w.th).catch(()=>{});
+      }
+    });
+
+    rb.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      reviewWords.splice(index, 1);
+      renderReviewButtons();
+    });
+
+    // double-tap remove for touch
+    let lastTap = 0;
+    rb.addEventListener('touchend', () => {
+      const now = Date.now();
+      if (now - lastTap < 300) {
         reviewWords.splice(index, 1);
         renderReviewButtons();
       }
+      lastTap = now;
+    });
+
+    reviewArea.appendChild(rb);
+  });
+}
+
+/* ===== helpers ===== */
+function updateEditArea(){
+  document.getElementById('editArea').value = JSON.stringify(words, null, 2);
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+}
+
+/* ===== actions ===== */
+// generate from manual inputs
+document.getElementById('generateBtn').addEventListener('click', () => {
+  const th = document.getElementById('thaiInput').value.trim();
+  const zh = document.getElementById('chineseInput').value.trim();
+  if (!th || !zh) { alert("請輸入完整的泰文與中文解釋"); return; }
+  words.push({ th, zh });
+  renderButtons();
+  document.getElementById('thaiInput').value = '';
+  document.getElementById('chineseInput').value = '';
+});
+
+// auto-translate: defensive parsing and fallback
+document.getElementById('autoTranslateBtn').addEventListener('click', async () => {
+  const zh = document.getElementById('chineseOnlyInput').value.trim();
+  if (!zh) { alert("請輸入中文解釋"); return; }
+
+  // show temporary disabled state
+  const btn = document.getElementById('autoTranslateBtn');
+  btn.disabled = true;
+  btn.textContent = '翻譯中...';
+
+  try {
+    // Use Google translate public endpoint (may be rate-limited or blocked by CORS in some environments)
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=th&dt=t&q=${encodeURIComponent(zh)}`;
+    const res = await fetch(url);
+    // If response is not JSON, try to read text and attempt to parse
+    let data;
+    try { data = await res.json(); } catch (e) {
+      const txt = await res.text();
+      try { data = JSON.parse(txt); } catch (e2) { data = null; }
     }
 
-    document.getElementById('generateBtn').addEventListener('click', () => {
-      const input = document.getElementById('inputArea').value.trim();
-      if (!input) return;
-      try {
-        const arr = JSON.parse("[" + input + "]");
-        if (Array.isArray(arr)) {
-          words = words.concat(arr);
-          renderButtons();
-        } else {
-          alert("格式錯誤，必須是陣列");
-        }
-      } catch (e) {
-        alert("JSON 格式錯誤，請使用 { \"th\": \"泰文\", \"zh\": \"中文\" } 的格式");
-      }
-    });
+    // Defensive parsing
+    let th = "";
+    if (Array.isArray(data) && Array.isArray(data[0]) && Array.isArray(data[0][0])) {
+      th = data[0][0][0] || "";
+    } else if (Array.isArray(data) && typeof data[0] === 'string') {
+      // sometimes returns simpler structure
+      th = data[0];
+    }
 
-    document.getElementById('saveBtn').addEventListener('click', () => {
-      localStorage.setItem("thaiWords", JSON.stringify(words));
- localStorage.setItem("reviewWords", JSON.stringify(reviewWords)); // 新增這行
-      alert("已儲存，下次開啟仍會看到這些按鈕！");
-    });
+    // fallback: if no translation, try a very simple heuristic (not ideal)
+    if (!th) {
+      // try to extract any string in the response
+      const flat = JSON.stringify(data || "");
+      const match = flat.match(/"([^"]+)"/);
+      if (match) th = match[1];
+    }
 
-    document.getElementById('updateBtn').addEventListener('click', () => {
-      try {
-        const newWords = JSON.parse(document.getElementById('editArea').value);
-        if (Array.isArray(newWords)) {
-          words = newWords;
-          renderButtons();
-        } else {
-          alert("格式錯誤，必須是陣列");
-        }
-      } catch(e) {
-        alert("JSON 格式錯誤，請檢查編輯內容");
-      }
-    });
+    if (!th) {
+      alert("翻譯失敗，請稍後再試或改用手動輸入泰文");
+      return;
+    }
 
-
-document.getElementById('clearReviewBtn').addEventListener('click', () => {
-  reviewWords = [];              // 清空陣列
-  renderReviewButtons();         // 重新渲染畫面
-  localStorage.removeItem("reviewWords"); // 如果有存檔，也一併清除
-});
-
-
-
-// 加入拖曳提示效果
-reviewArea.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  reviewArea.classList.add("dragover");
-});
-reviewArea.addEventListener("dragleave", () => {
-  reviewArea.classList.remove("dragover");
-});
-reviewArea.addEventListener("drop", (e) => {
-  reviewArea.classList.remove("dragover");
-  handleDropToReview(e);
-});
-
-
-
-
-
-    window.addEventListener("beforeunload", function (e) {
-      const saved = localStorage.getItem("thaiWords");
-      if (JSON.stringify(words) !== saved) {
-        e.preventDefault();
-        e.returnValue = "尚未儲存變更，是否要離開？";
-      }
-    });
-
+    words.push({ th, zh });
     renderButtons();
-speechSynthesis.getVoices();
-  </script>
+    document.getElementById('chineseOnlyInput').value = '';
+  } catch (err) {
+    console.error("translate error", err);
+    alert("翻譯失敗，請稍後再試或改用手動輸入泰文");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '自動翻譯並生成按鈕';
+  }
+});
+
+// save to localStorage
+document.getElementById('saveBtn').addEventListener('click', () => {
+  saveAll();
+  alert("已儲存，下次開啟仍會看到這些按鈕！");
+});
+
+// update from edit area
+document.getElementById('updateBtn').addEventListener('click', () => {
+  try {
+    const newWords = JSON.parse(document.getElementById('editArea').value);
+    if (!Array.isArray(newWords)) { alert("格式錯誤，必須是陣列"); return; }
+    // basic validation
+    for (const item of newWords) {
+      if (typeof item.th !== 'string' || typeof item.zh !== 'string') {
+        alert("每個項目必須包含 th 與 zh 字串欄位");
+        return;
+      }
+    }
+    words = newWords;
+    renderButtons();
+  } catch (e) {
+    alert("JSON 格式錯誤，請檢查編輯內容");
+  }
+});
+
+
+
+
+// clear review
+document.getElementById('clearReviewBtn').addEventListener('click', () => {
+  if (!reviewWords.length) return;
+  if (!confirm("確定要清除重溫區域嗎？")) return;
+  reviewWords = [];
+  renderReviewButtons();
+  try { localStorage.removeItem("reviewWords"); } catch(e){}
+});
+
+// before unload: warn if unsaved changes
+window.addEventListener("beforeunload", function (e) {
+  try {
+    const saved = localStorage.getItem("thaiWords");
+    if (saved !== JSON.stringify(words)) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+  } catch(e){}
+});
+
+/* initial render */
+renderButtons();
+</script>
 </body>
 </html>
