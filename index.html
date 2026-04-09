@@ -36,6 +36,14 @@ body{
   padding:18px;
 }
 
+/* Ensure inputs don't trigger iOS auto-zoom */
+input, textarea, select, button {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* Header */
 header {
   display:flex;
@@ -261,6 +269,21 @@ main {
   .avatar { width:48px; height:48px; font-size:16px; }
   .play { width:40px; height:40px; }
 }
+
+/* small toast for copy feedback */
+.copy-toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 24px;
+  background: rgba(15,23,36,0.9);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  z-index: 9999;
+  box-shadow: 0 8px 24px rgba(2,6,23,0.3);
+}
 </style>
 </head>
 <body>
@@ -302,6 +325,7 @@ main {
     <input id="chineseInput" placeholder="輸入中文解釋 (手動)" />
     <div class="full" style="display:flex;gap:10px">
       <button id="generateBtn" class="btn">生成按鈕</button>
+      <button id="exportBtn" class="btn ghost">匯出 TXT</button>
     </div>
     <input id="chineseOnlyInput" placeholder="只輸入中文，自動翻譯成泰文" />
     <div style="display:flex;gap:10px">
@@ -311,9 +335,10 @@ main {
   </section>
 
   <section class="form full" style="margin-top:6px">
-    <textarea id="editArea" placeholder='進階編輯：格式範例 [{"th":"ดูหนัง","zh":"看電影"}]'></textarea>
+    <textarea id="editArea" placeholder='進階編輯：格式範例 [{"th":"ดูหนัง","zh":"看電影","pos":"verb"}]' rows="8" style="width:100%;"></textarea>
     <div style="display:flex;gap:10px;align-items:center">
       <button id="updateBtn" class="btn">更新清單</button>
+      <button id="copyListBtn" class="btn ghost">複製更新清單</button>
       <div style="flex:1"></div>
     </div>
   </section>
@@ -356,7 +381,6 @@ async function _ensureAudioContext() {
 
 async function speak(text){
   text = String(text || '');
-  // 優先使用 Web Speech API
   if ('speechSynthesis' in window) {
     try {
       await _ensureAudioContext();
@@ -371,7 +395,6 @@ async function speak(text){
     } catch(e){ console.warn('speechSynthesis error', e); }
   }
 
-  // fallback: 使用單一 audio 元件並等待 play promise
   try {
     const url = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" + encodeURIComponent(text) + "&tl=th";
     _sharedAudio.src = url;
@@ -382,7 +405,7 @@ async function speak(text){
   } catch(e){ console.error('fallback speak error', e); }
 }
 
-/* One-touch unlock helper: try to resume audio context on first touch */
+/* One-touch unlock helper */
 function oneTouchUnlock() {
   _ensureAudioContext();
   window.removeEventListener('touchstart', oneTouchUnlock);
@@ -442,7 +465,6 @@ function renderList(filter=''){
 
   updateEditArea();
   renderReviewChips();
-  // adjust list height after DOM updates
   setTimeout(adjustListHeight, 50);
 }
 
@@ -508,6 +530,12 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   alert("已儲存");
 });
 
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const content = JSON.stringify(words, null, 2);
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = "thai_words.txt"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
 
 document.getElementById('updateBtn').addEventListener('click', () => {
   try {
@@ -550,7 +578,7 @@ document.getElementById('audioUnlock').addEventListener('click', async () => {
     await _ensureAudioContext();
 
     if ('speechSynthesis' in window) {
-      const u = new SpeechSynthesisUtterance('เริ่ม'); // 短字串以確保手勢解鎖
+      const u = new SpeechSynthesisUtterance('เริ่ม');
       u.lang = 'th-TH';
       u.rate = 1;
       u.volume = 0.01;
@@ -610,6 +638,107 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', adjustListHeight);
   window.visualViewport.addEventListener('scroll', adjustListHeight);
 }
+
+/* ===== Copy updated list (editArea or current words) ===== */
+document.getElementById('copyListBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('copyListBtn');
+  const originalText = btn.textContent;
+  let content = document.getElementById('editArea').value.trim();
+  let useText = '';
+  try {
+    if (content) {
+      // Validate JSON
+      const parsed = JSON.parse(content);
+      // Pretty-print to ensure consistent formatting
+      useText = JSON.stringify(parsed, null, 2);
+    } else {
+      useText = JSON.stringify(words, null, 2);
+    }
+  } catch (e) {
+    // If editArea invalid, fallback to current words
+    useText = JSON.stringify(words, null, 2);
+  }
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(useText);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = useText;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    btn.textContent = '已複製';
+    showCopyToast('已複製更新清單');
+    setTimeout(() => { btn.textContent = originalText; }, 1400);
+  } catch (err) {
+    console.error('copy list failed', err);
+    btn.textContent = '複製失敗';
+    showCopyToast('複製失敗，請手動複製');
+    setTimeout(() => { btn.textContent = originalText; }, 1400);
+  }
+});
+
+/* ===== small toast for copy feedback ===== */
+function showCopyToast(text) {
+  const t = document.createElement('div');
+  t.className = 'copy-toast';
+  t.textContent = text;
+  document.body.appendChild(t);
+  setTimeout(() => {
+    t.style.opacity = '0';
+    setTimeout(() => t.remove(), 300);
+  }, 1200);
+}
+
+/* ===== Prevent iOS auto-zoom issues: blur handling and visualViewport adjustments ===== */
+(function() {
+  function onInputBlur() {
+    setTimeout(() => {
+      try {
+        if (document.activeElement && /input|textarea|select/i.test(document.activeElement.tagName)) {
+          document.activeElement.blur();
+        }
+      } catch(e){}
+      try { window.scrollTo({ top: Math.max(0, window.scrollY - 1), behavior: 'smooth' }); } catch(e){ window.scrollTo(0, Math.max(0, window.scrollY - 1)); }
+    }, 50);
+  }
+
+  const inputs = () => Array.from(document.querySelectorAll('input, textarea, select'));
+  function bindInputBlur() {
+    inputs().forEach(el => {
+      el.removeEventListener('blur', onInputBlur);
+      el.addEventListener('blur', onInputBlur);
+    });
+  }
+
+  window.addEventListener('load', bindInputBlur);
+  const mo = new MutationObserver(() => bindInputBlur());
+  mo.observe(document.body, { childList: true, subtree: true });
+
+  if (window.visualViewport) {
+    let lastVVHeight = window.visualViewport.height;
+    window.visualViewport.addEventListener('resize', () => {
+      const vh = window.visualViewport.height;
+      if (vh > lastVVHeight) {
+        setTimeout(onInputBlur, 80);
+      }
+      lastVVHeight = vh;
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (document.activeElement && /input|textarea/i.test(document.activeElement.tagName))) {
+      if (document.activeElement.tagName.toLowerCase() === 'input') {
+        document.activeElement.blur();
+      }
+    }
+  });
+})();
 
 /* Initial render */
 renderList();
