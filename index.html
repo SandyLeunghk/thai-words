@@ -3,128 +3,117 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>泰文生字朗讀（手機橫向滑動優化）</title>
+<title>泰文生字（行動優化）</title>
 <style>
-  :root{--gap:10px;--card-radius:10px}
-  body {
-    font-family: Arial, sans-serif;
-    padding: 12px;
-    background: #f7f7f7;
-    margin: 0;
-    -webkit-tap-highlight-color: transparent;
+  :root{
+    --bg:#f6f8fb; --card:#fff; --muted:#6b7280; --accent:#2563eb;
+    --radius:12px; --gap:12px; --touch:48px;
   }
-  h1,h2 { font-size:16px; margin:12px 0 6px; text-align:center; }
-  /* 橫向滾動列 */
-  .scroll-row {
-    display:flex;
-    gap:var(--gap);
-    overflow-x:auto;
-    padding:12px;
-    -webkit-overflow-scrolling: touch; /* iOS 慣性滾動 */
-    scroll-behavior: smooth;
-    background: #fff;
-    border-radius: 10px;
-    border: 1px solid #e6e6e6;
-    touch-action: pan-y; /* 允許垂直滾動，水平由容器處理 */
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans",Arial;
+    background:var(--bg); color:#0f1724; -webkit-font-smoothing:antialiased;
+    padding:12px 12px 84px; /* bottom padding for sticky player */
   }
-  .scroll-row::-webkit-scrollbar { height:8px; }
-  .word-card {
-    flex: 0 0 auto;
-    min-width: 160px;
-    max-width: 220px;
-    padding: 12px 14px;
-    border-radius: var(--card-radius);
-    border: 1px solid #ddd;
-    background: #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    cursor: pointer;
-    text-align: left;
-    -webkit-user-select: none;
-    user-select: none;
-    position: relative;
-    box-sizing: border-box;
+  header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  h1{font-size:18px;margin:0}
+  .subtitle{font-size:13px;color:var(--muted);margin:0}
+  /* list */
+  .list{display:flex;flex-direction:column;gap:10px}
+  .card{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px;border-radius:var(--radius);background:var(--card);
+    box-shadow:0 6px 18px rgba(2,6,23,0.06); border:1px solid rgba(2,6,23,0.04);
+    min-height:64px; gap:10px;
   }
-  .word-card .th { font-size:18px; font-weight:600; color:#222; }
-  .word-card .zh { font-size:13px; color:#666; margin-top:6px; display:block; }
-  .toggle-review {
-    position: absolute;
-    right: 8px;
-    top: 8px;
-    width: 30px;
-    height: 30px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    background: #fff;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:16px;
-    line-height:1;
-    pointer-events: auto;
+  .left{display:flex;flex-direction:column;gap:6px}
+  .th{font-size:18px;font-weight:700}
+  .zh{font-size:14px;color:var(--muted)}
+  .actions{display:flex;gap:8px;align-items:center}
+  .btn{
+    height:var(--touch); min-width:var(--touch); padding:0 12px; border-radius:10px;
+    border:0;background:linear-gradient(90deg,var(--accent),#4f46e5); color:#fff;
+    font-weight:600; display:flex;align-items:center;justify-content:center; cursor:pointer;
   }
-  .toggle-review.added { background:#fff7d6; border-color:#d4a017; }
-  #reviewArea {
-    margin-top:12px;
-    padding:10px;
-    border-radius:8px;
-    border:2px dashed #ccc;
-    background:#fafafa;
-    min-height:60px;
+  .btn.ghost{background:#fff;color:var(--accent);border:1px solid rgba(37,99,235,0.12)}
+  .star{height:44px;width:44px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .star.added{background:#fff7d6;border-color:#d4a017;color:#b45309}
+  /* sticky player bottom */
+  .player{
+    position:fixed; left:12px; right:12px; bottom:12px; height:60px;
+    background:linear-gradient(180deg,#fff,#fbfdff); border-radius:14px;
+    box-shadow:0 12px 30px rgba(2,6,23,0.12); display:flex;align-items:center;gap:12px;padding:8px 12px;
+    border:1px solid rgba(2,6,23,0.04); z-index:9999;
   }
-  .controls { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:10px; }
-  input[type="text"], textarea {
-    width:100%;
-    padding:10px;
-    margin-top:8px;
-    font-size:14px;
-    border-radius:6px;
-    border:1px solid #ccc;
-    box-sizing:border-box;
+  .player .play{height:44px;width:44px;border-radius:10px;background:linear-gradient(90deg,var(--accent),#7c3aed);color:#fff;border:0;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .player .label{flex:1; font-size:14px; color:#0b1220; font-weight:600}
+  .player .sub{font-size:12px;color:var(--muted)}
+  /* form */
+  .form{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  input[type="text"], textarea{
+    width:100%; padding:12px; border-radius:10px; border:1px solid rgba(2,6,23,0.06); font-size:14px;
+    background:#fff;
   }
-  textarea { height:120px; font-family:monospace; }
-  button { margin-top:8px; padding:10px 14px; border-radius:6px; }
-  #saveBtn { font-weight:700; box-shadow:0 0 8px rgba(0,0,0,0.12); }
-  .small { padding:8px 10px; font-size:13px; }
-  @media(min-width:700px){ .word-card { min-width:180px; } }
-  .scroll-row.dragging { cursor: grabbing; }
-  button:active { transform: translateY(1px); }
+  textarea{height:100px; font-family:inherit}
+  .row{display:flex;gap:8px}
+  .row .flex{flex:1}
+  /* small helpers */
+  .muted{color:var(--muted);font-size:13px}
+  @media(min-width:720px){
+    body{padding:18px 18px 100px}
+    .card{min-height:72px}
+  }
 </style>
 </head>
 <body>
 
-<h1>點擊按鈕朗讀泰文生字</h1>
+<header>
+  <div>
+    <h1>泰文生字</h1>
+    <p class="subtitle">點擊播放；點星號加入重溫</p>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button id="saveBtn" class="btn ghost" style="height:40px;padding:8px 10px">儲存</button>
+    <button id="exportBtn" class="btn ghost" style="height:40px;padding:8px 10px">匯出</button>
+  </div>
+</header>
 
-<!-- 橫向滾動列 -->
-<div class="scroll-row" id="buttonsRow" aria-label="泰文生字列表"></div>
+<main>
+  <section class="list" id="listArea" aria-label="生字列表"></section>
 
-<h2>重溫區域</h2>
-<div class="controls">
-  <button id="clearReviewBtn" class="small">清除重溫區域</button>
-  <button id="saveBtn" class="small">儲存按鈕</button>
-</div>
-<div id="reviewArea"><p style="color:#666;margin:0">點按單字朗讀；點右上星號加入或移除重溫。</p></div>
+  <section class="form" aria-label="新增">
+    <input id="thaiInput" placeholder="輸入泰文（手動）">
+    <input id="chineseInput" placeholder="輸入中文解釋（手動）">
+    <div class="row">
+      <button id="generateBtn" class="btn" style="flex:1">生成按鈕</button>
+      <button id="autoTranslateBtn" class="btn ghost" style="width:120px">自動翻譯</button>
+    </div>
+    <input id="chineseOnlyInput" placeholder="只輸入中文，自動翻譯成泰文">
+  </section>
 
-<h2>新增泰文與中文解釋</h2>
-<input type="text" id="thaiInput" placeholder="輸入泰文">
-<input type="text" id="chineseInput" placeholder="輸入中文解釋">
-<div class="controls">
-  <button id="generateBtn">生成按鈕</button>
-</div>
+  <section style="margin-top:10px">
+    <textarea id="editArea" placeholder='進階編輯：格式 [{"th":"ดูหนัง","zh":"看電影"}]'></textarea>
+    <div class="row" style="margin-top:8px">
+      <button id="updateBtn" class="btn" style="flex:1">更新清單</button>
+      <button id="clearReviewBtn" class="btn ghost" style="width:120px">清除重溫</button>
+    </div>
+  </section>
 
-<h2>新增中文解釋（自動翻譯成泰文）</h2>
-<input type="text" id="chineseOnlyInput" placeholder="只輸入中文解釋，按下自動翻譯並生成按鈕">
-<div class="controls">
-  <button id="autoTranslateBtn">自動翻譯並生成按鈕</button>
-</div>
+  <p class="muted" style="margin-top:12px">提示：首次使用請按下底部「啟用語音」以解鎖播放權限。</p>
+</main>
 
-<h2>編輯目前生字清單（進階）</h2>
-<textarea id="editArea" placeholder='格式範例: [{"th":"ดูหนัง","zh":"看電影"}]'></textarea>
-<div class="controls">
-  <button id="updateBtn">更新清單</button>
+<!-- sticky player -->
+<div class="player" id="player">
+  <button id="playerPlay" class="play">▶</button>
+  <div>
+    <div class="label" id="playerLabel">尚未播放</div>
+    <div class="sub" id="playerSub">點選任一單字開始朗讀</div>
+  </div>
+  <button id="audioUnlock" class="btn ghost" style="height:40px;padding:8px 10px">啟用語音</button>
 </div>
 
 <script>
-/* ===== 資料與載入 ===== */
+/* ===== Data ===== */
 let words = [
   { th: "ดูหนัง", zh: "看電影" },
   { th: "เรียน", zh: "學習" },
@@ -132,14 +121,19 @@ let words = [
   { th: "พักผ่อน", zh: "休息" }
 ];
 let reviewWords = [];
+let current = null;
 
+/* load saved */
 try { const s = localStorage.getItem("thaiWords"); if (s) words = JSON.parse(s); } catch(e){}
 try { const r = localStorage.getItem("reviewWords"); if (r) reviewWords = JSON.parse(r); } catch(e){}
 
-const buttonsRow = document.getElementById('buttonsRow');
-const reviewArea = document.getElementById('reviewArea');
+/* elements */
+const listArea = document.getElementById('listArea');
+const playerLabel = document.getElementById('playerLabel');
+const playerSub = document.getElementById('playerSub');
+const playerPlay = document.getElementById('playerPlay');
 
-/* ===== 語音播放（優先 SpeechSynthesis） ===== */
+/* ===== Speech (priority) ===== */
 function speak(text){
   if ('speechSynthesis' in window) {
     try {
@@ -151,9 +145,9 @@ function speak(text){
       u.volume = 1;
       window.speechSynthesis.speak(u);
       return;
-    } catch(e){ console.warn('speechSynthesis error', e); }
+    } catch(e){ console.warn(e); }
   }
-  // 備援：Audio 播放（可能受 CORS 或自動播放限制）
+  // fallback
   try {
     const url = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" + encodeURIComponent(text) + "&tl=th";
     const audio = new Audio();
@@ -164,131 +158,94 @@ function speak(text){
   } catch(e){ console.error(e); }
 }
 
-/* 解鎖音訊按鈕（使用者點一次） */
-function initAudioUnlock(){
-  if (document.getElementById('audioUnlockBtn')) return;
-  const btn = document.createElement('button');
-  btn.id = 'audioUnlockBtn';
-  btn.textContent = '點我啟用語音';
-  Object.assign(btn.style, {
-    position:'fixed', right:'12px', bottom:'12px', zIndex:9999,
-    padding:'10px 12px', borderRadius:'8px', background:'#fff', border:'1px solid #ccc', boxShadow:'0 2px 6px rgba(0,0,0,0.12)'
-  });
-  document.body.appendChild(btn);
-  btn.addEventListener('click', () => {
-    try {
-      if ('speechSynthesis' in window) {
-        const u = new SpeechSynthesisUtterance('');
-        window.speechSynthesis.speak(u);
-      } else {
-        const a = new Audio();
-        a.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
-        a.setAttribute('playsinline','');
-        a.play().catch(()=>{});
-      }
-    } catch(e){}
-    btn.remove();
-  }, { once:true });
-}
-initAudioUnlock();
+/* unlock audio button */
+document.getElementById('audioUnlock').addEventListener('click', () => {
+  try {
+    if ('speechSynthesis' in window) {
+      const u = new SpeechSynthesisUtterance('');
+      window.speechSynthesis.speak(u);
+    } else {
+      const a = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=');
+      a.setAttribute('playsinline','');
+      a.play().catch(()=>{});
+    }
+  } catch(e){}
+  document.getElementById('audioUnlock').textContent = '已啟用';
+  document.getElementById('audioUnlock').disabled = true;
+});
 
-/* ===== 渲染按鈕（橫向滾動） ===== */
-function renderButtons(){
-  buttonsRow.innerHTML = '';
-  if (!words.length) {
-    buttonsRow.innerHTML = '<div style="padding:12px;color:#666">目前沒有生字，請新增。</div>';
-    updateEditArea();
-    renderReviewButtons();
-    return;
-  }
+/* ===== Render list (mobile friendly cards) ===== */
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, (m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
+function renderList(){
+  listArea.innerHTML = '';
   words.forEach((w, idx) => {
     const card = document.createElement('div');
-    card.className = 'word-card';
-    card.dataset.index = idx;
-    card.innerHTML = `<div class="th">${escapeHtml(w.th)}</div><div class="zh">${escapeHtml(w.zh)}</div>`;
-
-    // 右上加入/移除按鈕
-    const toggle = document.createElement('button');
-    toggle.className = 'toggle-review';
-    toggle.innerHTML = isInReview(w) ? '★' : '☆';
-    if (isInReview(w)) toggle.classList.add('added');
-    toggle.addEventListener('click', (e) => {
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="left">
+        <div class="th">${escapeHtml(w.th)}</div>
+        <div class="zh">${escapeHtml(w.zh)}</div>
+      </div>
+      <div class="actions">
+        <button class="star" aria-label="加入重溫">${isInReview(w) ? '★' : '☆'}</button>
+        <button class="btn playBtn" aria-label="播放">▶</button>
+      </div>
+    `;
+    // play button
+    card.querySelector('.playBtn').addEventListener('click', (e) => {
       e.stopPropagation();
-      toggleReviewByIndex(idx);
-    });
-    card.appendChild(toggle);
-
-    // 點擊：朗讀 + 複製
-    card.addEventListener('click', () => {
+      current = w;
+      playerLabel.textContent = w.th;
+      playerSub.textContent = w.zh;
       speak(w.th);
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(w.th).catch(()=>{});
-      }
+      try { navigator.vibrate && navigator.vibrate(20); } catch(e){}
     });
-
-    // pointer 長按偵測（不阻塞滾動）
-    let pressTimer = null;
-    const longMs = 600;
-    card.addEventListener('pointerdown', (e) => {
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      pressTimer = setTimeout(() => {
-        toggleReviewByIndex(idx);
-      }, longMs);
+    // star toggle
+    const star = card.querySelector('.star');
+    if (isInReview(w)) star.classList.add('added');
+    star.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleReviewByWord(w);
+      renderList();
     });
-    card.addEventListener('pointerup', () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } });
-    card.addEventListener('pointercancel', () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } });
-
-    buttonsRow.appendChild(card);
+    // card tap also plays
+    card.addEventListener('click', () => {
+      current = w;
+      playerLabel.textContent = w.th;
+      playerSub.textContent = w.zh;
+      speak(w.th);
+    });
+    listArea.appendChild(card);
   });
-
   updateEditArea();
-  renderReviewButtons();
+  renderReviewChips();
 }
 
-/* ===== review 區域渲染 ===== */
-function renderReviewButtons(){
-  reviewArea.innerHTML = '<p style="color:#666;margin:0">點按單字朗讀；點右上星號加入或移除重溫。</p>';
-  if (!reviewWords.length) return;
-  const container = document.createElement('div');
-  container.style.marginTop = '8px';
-  container.style.display = 'flex';
-  container.style.flexWrap = 'wrap';
-  container.style.gap = '8px';
-  reviewWords.forEach((w, i) => {
-    const b = document.createElement('button');
-    b.className = 'reviewBtn';
-    b.textContent = `${w.th} (${w.zh})`;
-    b.style.padding = '8px 10px';
-    b.style.borderRadius = '8px';
-    b.style.border = '1px solid #ccc';
-    b.style.background = '#fff';
-    b.addEventListener('click', () => { speak(w.th); });
-    container.appendChild(b);
-  });
-  reviewArea.appendChild(container);
+/* ===== Review chips ===== */
+function renderReviewChips(){
+  // show count in player sub if any
+  const count = reviewWords.length;
+  if (count) playerSub.textContent = `${count} 個重溫`;
 }
 
 /* ===== helpers ===== */
-function updateEditArea(){ document.getElementById('editArea').value = JSON.stringify(words, null, 2); }
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 function isInReview(item){ return reviewWords.some(r => r.th === item.th); }
-function toggleReviewByIndex(index){
-  const w = words[index];
-  const found = reviewWords.findIndex(r => r.th === w.th);
-  if (found === -1) reviewWords.push(w); else reviewWords.splice(found,1);
-  renderButtons();
+function toggleReviewByWord(w){
+  const idx = reviewWords.findIndex(r => r.th === w.th);
+  if (idx === -1) reviewWords.push(w); else reviewWords.splice(idx,1);
+  try { localStorage.setItem("reviewWords", JSON.stringify(reviewWords)); } catch(e){}
 }
 
 /* ===== actions ===== */
 document.getElementById('generateBtn').addEventListener('click', () => {
   const th = document.getElementById('thaiInput').value.trim();
   const zh = document.getElementById('chineseInput').value.trim();
-  if (!th || !zh) { alert("請輸入完整的泰文與中文解釋"); return; }
-  words.push({ th, zh });
-  renderButtons();
+  if (!th || !zh) { alert("請輸入泰文與中文解釋"); return; }
+  words.unshift({ th, zh }); // 新增到最上方
   document.getElementById('thaiInput').value = '';
   document.getElementById('chineseInput').value = '';
+  renderList();
 });
 
 document.getElementById('autoTranslateBtn').addEventListener('click', async () => {
@@ -304,61 +261,52 @@ document.getElementById('autoTranslateBtn').addEventListener('click', async () =
     let th = "";
     if (Array.isArray(data) && Array.isArray(data[0]) && Array.isArray(data[0][0])) th = data[0][0][0] || "";
     if (!th) { alert("翻譯失敗，請改用手動輸入泰文"); return; }
-    words.push({ th, zh });
-    renderButtons();
+    words.unshift({ th, zh });
     document.getElementById('chineseOnlyInput').value = '';
-  } catch(e) { console.error(e); alert("翻譯失敗，請稍後再試"); }
-  finally { btn.disabled = false; btn.textContent = '自動翻譯並生成按鈕'; }
+    renderList();
+  } catch(e) { console.error(e); alert("翻譯失敗"); }
+  finally { btn.disabled = false; btn.textContent = '自動翻譯'; }
 });
 
 document.getElementById('saveBtn').addEventListener('click', () => {
   try { localStorage.setItem("thaiWords", JSON.stringify(words)); } catch(e){}
   try { localStorage.setItem("reviewWords", JSON.stringify(reviewWords)); } catch(e){}
-  alert("已儲存，下次開啟仍會看到這些按鈕！");
+  alert("已儲存");
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const content = JSON.stringify(words, null, 2);
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = "thai_words.txt"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 });
 
 document.getElementById('updateBtn').addEventListener('click', () => {
   try {
     const newWords = JSON.parse(document.getElementById('editArea').value);
     if (!Array.isArray(newWords)) { alert("格式錯誤，必須是陣列"); return; }
-    for (const item of newWords) {
-      if (typeof item.th !== 'string' || typeof item.zh !== 'string') { alert("每個項目必須包含 th 與 zh 字串欄位"); return; }
-    }
     words = newWords;
-    renderButtons();
-  } catch(e){ alert("JSON 格式錯誤，請檢查編輯內容"); }
+    renderList();
+  } catch(e){ alert("JSON 格式錯誤"); }
 });
-
-
 
 document.getElementById('clearReviewBtn').addEventListener('click', () => {
-  if (!reviewWords.length) return;
   if (!confirm("確定要清除重溫區域嗎？")) return;
   reviewWords = [];
-  renderReviewButtons();
   try { localStorage.removeItem("reviewWords"); } catch(e){}
+  renderList();
 });
 
-/* 鼠標拖曳滾動（桌機友好） */
-(function enableDragScroll(){
-  let isDown = false, startX, scrollLeft;
-  buttonsRow.addEventListener('mousedown', (e) => {
-    isDown = true; buttonsRow.classList.add('dragging');
-    startX = e.pageX - buttonsRow.offsetLeft;
-    scrollLeft = buttonsRow.scrollLeft;
-  });
-  buttonsRow.addEventListener('mouseleave', () => { isDown = false; buttonsRow.classList.remove('dragging'); });
-  buttonsRow.addEventListener('mouseup', () => { isDown = false; buttonsRow.classList.remove('dragging'); });
-  buttonsRow.addEventListener('mousemove', (e) => {
-    if (!isDown) return;
-    e.preventDefault();
-    const x = e.pageX - buttonsRow.offsetLeft;
-    const walk = (x - startX) * 1;
-    buttonsRow.scrollLeft = scrollLeft - walk;
-  });
-})();
+/* player controls */
+playerPlay.addEventListener('click', () => {
+  if (!current) { alert("請先選擇一個單字播放"); return; }
+  speak(current.th);
+});
 
-/* beforeunload: warn if unsaved */
+/* edit area helper */
+function updateEditArea(){ document.getElementById('editArea').value = JSON.stringify(words, null, 2); }
+
+/* beforeunload warning */
 window.addEventListener("beforeunload", function (e) {
   try {
     const saved = localStorage.getItem("thaiWords");
@@ -366,8 +314,9 @@ window.addEventListener("beforeunload", function (e) {
   } catch(e){}
 });
 
-/* 初始渲染 */
-renderButtons();
+/* initial render */
+renderList();
+updateEditArea();
 </script>
 </body>
 </html>
