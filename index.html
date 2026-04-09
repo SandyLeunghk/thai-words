@@ -15,19 +15,46 @@
   }
   h1,h2 { font-size:16px; margin:12px 0 6px; text-align:center; }
   .grid { display:flex; flex-wrap:wrap; gap:var(--gap); justify-content:center; }
-  .grid button, .reviewBtn {
+  /* 主要按鈕樣式，禁止文字選取以避免長按選取 */
+  .word-btn, .reviewBtn {
+    position: relative;
     flex: 1 1 45%;
     min-width:120px;
-    padding:14px;
+    padding:14px 40px 14px 14px; /* 留空間給右側小按鈕 */
     font-size:14px;
     border-radius:var(--btn-radius);
     border:1px solid #ccc;
     background:#fff;
     cursor:pointer;
-    text-align:center;
+    text-align:left;
     box-sizing:border-box;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    overflow: hidden;
   }
-  .grid button span { display:block; font-size:12px; color:#666; margin-top:4px; }
+  .word-btn span { display:block; font-size:12px; color:#666; margin-top:4px; }
+  /* 小的加入/移除按鈕（右上角） */
+  .toggle-review {
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid #bbb;
+    background: #fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:700;
+    font-size:16px;
+    line-height:1;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .toggle-review.added { background:#ffd; border-color:#d4a017; }
   #buttons, #reviewArea {
     max-height:40vh;
     overflow-y:auto;
@@ -51,10 +78,7 @@
   button { margin-top:8px; padding:10px 14px; border-radius:6px; }
   #saveBtn { font-weight:700; box-shadow:0 0 8px rgba(0,0,0,0.12); }
   .small { padding:8px 10px; font-size:13px; }
-  @media(min-width:700px){
-    .grid button, .reviewBtn { flex:1 1 22%; }
-  }
-  /* touch feedback */
+  @media(min-width:700px){ .word-btn, .reviewBtn { flex:1 1 22%; } }
   button:active { transform:translateY(1px); }
 </style>
 </head>
@@ -68,7 +92,7 @@
   <button id="clearReviewBtn" class="small">清除重溫區域</button>
   <button id="saveBtn" class="small">儲存按鈕</button>
 </div>
-<div id="reviewArea"><p>長按按鈕加入或移除</p></div>
+<div id="reviewArea"><p style="color:#666">點擊右上星號加入或移除，或點按單字朗讀</p></div>
 
 <h2>新增泰文與中文解釋</h2>
 <input type="text" id="thaiInput" placeholder="輸入泰文">
@@ -99,7 +123,6 @@ let words = [
 ];
 let reviewWords = [];
 
-/* load saved */
 try {
   const saved = localStorage.getItem("thaiWords");
   if (saved) words = JSON.parse(saved);
@@ -109,95 +132,35 @@ try {
   if (savedR) reviewWords = JSON.parse(savedR);
 } catch(e){ console.warn("load reviewWords failed", e); }
 
-/* elements */
 const buttonsDiv = document.getElementById('buttons');
 const reviewArea = document.getElementById('reviewArea');
 
-/* ===== utilities ===== */
-// 在 <script> 裡替換原本的 speak 函式，並加入 initAudioUnlock() 呼叫
-function speak(text) {
-  // 優先使用 SpeechSynthesis（瀏覽器內建）
+/* ===== speak using SpeechSynthesis first ===== */
+function speak(text){
   if ('speechSynthesis' in window) {
     try {
-      // 取消任何正在播放的語音，避免重疊
       window.speechSynthesis.cancel();
-
       const utter = new SpeechSynthesisUtterance(text);
-      // 設定語言為泰語（若裝置有泰語語音）
       utter.lang = 'th-TH';
-      // 可微調語速與音量
       utter.rate = 0.95;
       utter.pitch = 1;
       utter.volume = 1;
-
-      // 若沒有泰語語音可用，瀏覽器會選擇最接近的語音或失敗
       window.speechSynthesis.speak(utter);
       return;
-    } catch (e) {
-      console.warn('speechSynthesis error', e);
-      // 失敗則退回到 fetch 播放
-    }
+    } catch(e){ console.warn('speechSynthesis error', e); }
   }
-
-  // 備援：使用 Google TTS 的音訊檔（注意 CORS 與可用性）
+  // fallback to audio URL
   try {
-    const url = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" +
-                encodeURIComponent(text) + "&tl=th";
+    const url = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" + encodeURIComponent(text) + "&tl=th";
     const audio = new Audio();
     audio.crossOrigin = "anonymous";
     audio.src = url;
-    audio.setAttribute('playsinline', ''); // iOS inline 播放
-    audio.autoplay = true;
-    // 嘗試播放並捕捉錯誤
-    audio.play().catch(err => {
-      console.warn('Audio play failed, user gesture required or CORS issue', err);
-    });
-  } catch (err) {
-    console.error('TTS fallback error', err);
-  }
+    audio.setAttribute('playsinline','');
+    audio.play().catch(()=>{});
+  } catch(e){ console.error(e); }
 }
 
-// 在頁面初始化時加入一個「解鎖音訊」按鈕（只需點一次）
-function initAudioUnlock() {
-  if (!('speechSynthesis' in window) && !('Audio' in window)) return;
-  const unlockId = 'audioUnlockBtn';
-  if (document.getElementById(unlockId)) return;
-
-  const btn = document.createElement('button');
-  btn.id = unlockId;
-  btn.textContent = '點我啟用語音';
-  btn.style.position = 'fixed';
-  btn.style.right = '12px';
-  btn.style.bottom = '12px';
-  btn.style.zIndex = 9999;
-  btn.style.padding = '10px 12px';
-  btn.style.borderRadius = '8px';
-  btn.style.background = '#fff';
-  btn.style.border = '1px solid #ccc';
-  btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.12)';
-  document.body.appendChild(btn);
-
-  btn.addEventListener('click', () => {
-    // 觸發一個短暫的語音或靜音音訊以解鎖播放權限
-    try {
-      if ('speechSynthesis' in window) {
-        const u = new SpeechSynthesisUtterance(''); // 空字串也能觸發
-        window.speechSynthesis.speak(u);
-      } else {
-        const a = new Audio();
-        a.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA='; // 極短空白音
-        a.setAttribute('playsinline', '');
-        a.play().catch(()=>{});
-      }
-    } catch(e){ /* ignore */ }
-    // 點過就移除按鈕
-    btn.remove();
-  }, { once: true });
-}
-
-// 呼叫初始化（在 renderButtons 或頁面載入時執行一次）
-initAudioUnlock();
-/* ===== render ===== */
+/* ===== render with long-press detection and explicit toggle button ===== */
 function renderButtons(){
   buttonsDiv.innerHTML = '';
   if (!words.length) {
@@ -206,10 +169,23 @@ function renderButtons(){
     renderReviewButtons();
     return;
   }
+
   words.forEach((w, index) => {
     const btn = document.createElement('button');
-    btn.innerHTML = `${escapeHtml(w.th)}<span>${escapeHtml(w.zh)}</span>`;
+    btn.className = 'word-btn';
+    btn.innerHTML = `<div style="pointer-events:none">${escapeHtml(w.th)}<span style="pointer-events:none">${escapeHtml(w.zh)}</span></div>`;
     btn.dataset.index = index;
+
+    // explicit small toggle button
+    const toggle = document.createElement('button');
+    toggle.className = 'toggle-review';
+    toggle.innerHTML = isInReview(w) ? '★' : '☆';
+    if (isInReview(w)) toggle.classList.add('added');
+    toggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleReviewByIndex(index);
+    });
+    btn.appendChild(toggle);
 
     // tap: speak + copy
     btn.addEventListener('click', () => {
@@ -219,36 +195,47 @@ function renderButtons(){
       }
     });
 
-    // long-press / contextmenu to add to review (works on mobile as long-press)
-    btn.addEventListener('contextmenu', (e) => {
+    // touch long-press detection (works without selecting text)
+    let longPressTimer = null;
+    const longPressDuration = 600; // ms
+
+    btn.addEventListener('touchstart', (e) => {
+      // prevent default to avoid text selection on some browsers
       e.preventDefault();
-      if (!reviewWords.some(r => r.th === w.th)) {
-        reviewWords.push(w);
-        renderReviewButtons();
+      longPressTimer = setTimeout(() => {
+        toggleReviewByIndex(index);
+      }, longPressDuration);
+    }, { passive: false });
+
+    btn.addEventListener('touchend', (e) => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
       }
     });
 
-    // small "add to review" affordance for touch users: double-tap adds
-    let lastTap = 0;
-    btn.addEventListener('touchend', (e) => {
-      const now = Date.now();
-      if (now - lastTap < 300) {
-        if (!reviewWords.some(r => r.th === w.th)) {
-          reviewWords.push(w);
-          renderReviewButtons();
-        }
-      }
-      lastTap = now;
+    // also support mouse long-press for desktop
+    btn.addEventListener('mousedown', (e) => {
+      longPressTimer = setTimeout(() => {
+        toggleReviewByIndex(index);
+      }, longPressDuration);
+    });
+    btn.addEventListener('mouseup', () => {
+      if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+    });
+    btn.addEventListener('mouseleave', () => {
+      if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
     });
 
     buttonsDiv.appendChild(btn);
   });
+
   updateEditArea();
   renderReviewButtons();
 }
 
 function renderReviewButtons(){
-  reviewArea.innerHTML = '<p style="color:#666">長按按鈕加入或移除</p>';
+  reviewArea.innerHTML = '<p style="color:#666">點擊右上星號加入或移除，或點按單字朗讀</p>';
   if (!reviewWords.length) return;
   reviewWords.forEach((w, index) => {
     const rb = document.createElement('button');
@@ -262,20 +249,12 @@ function renderReviewButtons(){
       }
     });
 
-    rb.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      reviewWords.splice(index, 1);
-      renderReviewButtons();
-    });
-
-    // double-tap remove for touch
+    // provide explicit remove via long-press or double-tap
+    rb.addEventListener('contextmenu', (e) => { e.preventDefault(); reviewWords.splice(index,1); renderReviewButtons(); });
     let lastTap = 0;
     rb.addEventListener('touchend', () => {
       const now = Date.now();
-      if (now - lastTap < 300) {
-        reviewWords.splice(index, 1);
-        renderReviewButtons();
-      }
+      if (now - lastTap < 300) { reviewWords.splice(index,1); renderReviewButtons(); }
       lastTap = now;
     });
 
@@ -284,15 +263,21 @@ function renderReviewButtons(){
 }
 
 /* ===== helpers ===== */
-function updateEditArea(){
-  document.getElementById('editArea').value = JSON.stringify(words, null, 2);
-}
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+function updateEditArea(){ document.getElementById('editArea').value = JSON.stringify(words, null, 2); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+function isInReview(item){ return reviewWords.some(r => r.th === item.th); }
+function toggleReviewByIndex(index){
+  const w = words[index];
+  const found = reviewWords.findIndex(r => r.th === w.th);
+  if (found === -1) {
+    reviewWords.push(w);
+  } else {
+    reviewWords.splice(found, 1);
+  }
+  renderButtons();
 }
 
 /* ===== actions ===== */
-// generate from manual inputs
 document.getElementById('generateBtn').addEventListener('click', () => {
   const th = document.getElementById('thaiInput').value.trim();
   const zh = document.getElementById('chineseInput').value.trim();
@@ -303,90 +288,52 @@ document.getElementById('generateBtn').addEventListener('click', () => {
   document.getElementById('chineseInput').value = '';
 });
 
-// auto-translate: defensive parsing and fallback
 document.getElementById('autoTranslateBtn').addEventListener('click', async () => {
   const zh = document.getElementById('chineseOnlyInput').value.trim();
   if (!zh) { alert("請輸入中文解釋"); return; }
-
-  // show temporary disabled state
   const btn = document.getElementById('autoTranslateBtn');
-  btn.disabled = true;
-  btn.textContent = '翻譯中...';
-
+  btn.disabled = true; btn.textContent = '翻譯中...';
   try {
-    // Use Google translate public endpoint (may be rate-limited or blocked by CORS in some environments)
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=th&dt=t&q=${encodeURIComponent(zh)}`;
     const res = await fetch(url);
-    // If response is not JSON, try to read text and attempt to parse
     let data;
-    try { data = await res.json(); } catch (e) {
-      const txt = await res.text();
-      try { data = JSON.parse(txt); } catch (e2) { data = null; }
-    }
-
-    // Defensive parsing
+    try { data = await res.json(); } catch(e) { const txt = await res.text(); data = JSON.parse(txt || 'null'); }
     let th = "";
-    if (Array.isArray(data) && Array.isArray(data[0]) && Array.isArray(data[0][0])) {
-      th = data[0][0][0] || "";
-    } else if (Array.isArray(data) && typeof data[0] === 'string') {
-      // sometimes returns simpler structure
-      th = data[0];
-    }
-
-    // fallback: if no translation, try a very simple heuristic (not ideal)
+    if (Array.isArray(data) && Array.isArray(data[0]) && Array.isArray(data[0][0])) th = data[0][0][0] || "";
     if (!th) {
-      // try to extract any string in the response
-      const flat = JSON.stringify(data || "");
-      const match = flat.match(/"([^"]+)"/);
-      if (match) th = match[1];
-    }
-
-    if (!th) {
-      alert("翻譯失敗，請稍後再試或改用手動輸入泰文");
+      alert("翻譯失敗，請改用手動輸入泰文");
       return;
     }
-
     words.push({ th, zh });
     renderButtons();
     document.getElementById('chineseOnlyInput').value = '';
-  } catch (err) {
-    console.error("translate error", err);
-    alert("翻譯失敗，請稍後再試或改用手動輸入泰文");
+  } catch(e) {
+    console.error(e);
+    alert("翻譯失敗，請稍後再試");
   } finally {
-    btn.disabled = false;
-    btn.textContent = '自動翻譯並生成按鈕';
+    btn.disabled = false; btn.textContent = '自動翻譯並生成按鈕';
   }
 });
 
-// save to localStorage
 document.getElementById('saveBtn').addEventListener('click', () => {
-  saveAll();
+  try { localStorage.setItem("thaiWords", JSON.stringify(words)); } catch(e){}
+  try { localStorage.setItem("reviewWords", JSON.stringify(reviewWords)); } catch(e){}
   alert("已儲存，下次開啟仍會看到這些按鈕！");
 });
 
-// update from edit area
 document.getElementById('updateBtn').addEventListener('click', () => {
   try {
     const newWords = JSON.parse(document.getElementById('editArea').value);
     if (!Array.isArray(newWords)) { alert("格式錯誤，必須是陣列"); return; }
-    // basic validation
     for (const item of newWords) {
-      if (typeof item.th !== 'string' || typeof item.zh !== 'string') {
-        alert("每個項目必須包含 th 與 zh 字串欄位");
-        return;
-      }
+      if (typeof item.th !== 'string' || typeof item.zh !== 'string') { alert("每個項目必須包含 th 與 zh 字串欄位"); return; }
     }
     words = newWords;
     renderButtons();
-  } catch (e) {
-    alert("JSON 格式錯誤，請檢查編輯內容");
-  }
+  } catch (e) { alert("JSON 格式錯誤，請檢查編輯內容"); }
 });
 
 
-
-
-// clear review
 document.getElementById('clearReviewBtn').addEventListener('click', () => {
   if (!reviewWords.length) return;
   if (!confirm("確定要清除重溫區域嗎？")) return;
@@ -395,14 +342,10 @@ document.getElementById('clearReviewBtn').addEventListener('click', () => {
   try { localStorage.removeItem("reviewWords"); } catch(e){}
 });
 
-// before unload: warn if unsaved changes
 window.addEventListener("beforeunload", function (e) {
   try {
     const saved = localStorage.getItem("thaiWords");
-    if (saved !== JSON.stringify(words)) {
-      e.preventDefault();
-      e.returnValue = "";
-    }
+    if (saved !== JSON.stringify(words)) { e.preventDefault(); e.returnValue = ""; }
   } catch(e){}
 });
 
