@@ -325,7 +325,7 @@ main {
     <input id="chineseInput" placeholder="輸入中文解釋 (手動)" />
     <div class="full" style="display:flex;gap:10px">
       <button id="generateBtn" class="btn">生成按鈕</button>
-      <button id="exportBtn" class="btn ghost">匯出 TXT</button>
+ 
     </div>
     <input id="chineseOnlyInput" placeholder="只輸入中文，自動翻譯成泰文" />
     <div style="display:flex;gap:10px">
@@ -530,12 +530,7 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   alert("已儲存");
 });
 
-document.getElementById('exportBtn').addEventListener('click', () => {
-  const content = JSON.stringify(words, null, 2);
-  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = "thai_words.txt"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-});
+
 
 document.getElementById('updateBtn').addEventListener('click', () => {
   try {
