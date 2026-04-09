@@ -114,23 +114,89 @@ const buttonsDiv = document.getElementById('buttons');
 const reviewArea = document.getElementById('reviewArea');
 
 /* ===== utilities ===== */
-function speak(text){
+// 在 <script> 裡替換原本的 speak 函式，並加入 initAudioUnlock() 呼叫
+function speak(text) {
+  // 優先使用 SpeechSynthesis（瀏覽器內建）
+  if ('speechSynthesis' in window) {
+    try {
+      // 取消任何正在播放的語音，避免重疊
+      window.speechSynthesis.cancel();
+
+      const utter = new SpeechSynthesisUtterance(text);
+      // 設定語言為泰語（若裝置有泰語語音）
+      utter.lang = 'th-TH';
+      // 可微調語速與音量
+      utter.rate = 0.95;
+      utter.pitch = 1;
+      utter.volume = 1;
+
+      // 若沒有泰語語音可用，瀏覽器會選擇最接近的語音或失敗
+      window.speechSynthesis.speak(utter);
+      return;
+    } catch (e) {
+      console.warn('speechSynthesis error', e);
+      // 失敗則退回到 fetch 播放
+    }
+  }
+
+  // 備援：使用 Google TTS 的音訊檔（注意 CORS 與可用性）
   try {
-    const audio = new Audio(
-      "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" +
-      encodeURIComponent(text) +
-      "&tl=th"
-    );
-    audio.play().catch(()=>{/* ignore play errors */});
-  } catch(err){
-    console.error("TTS error", err);
+    const url = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" +
+                encodeURIComponent(text) + "&tl=th";
+    const audio = new Audio();
+    audio.crossOrigin = "anonymous";
+    audio.src = url;
+    audio.setAttribute('playsinline', ''); // iOS inline 播放
+    audio.autoplay = true;
+    // 嘗試播放並捕捉錯誤
+    audio.play().catch(err => {
+      console.warn('Audio play failed, user gesture required or CORS issue', err);
+    });
+  } catch (err) {
+    console.error('TTS fallback error', err);
   }
 }
-function saveAll(){
-  try { localStorage.setItem("thaiWords", JSON.stringify(words)); } catch(e){}
-  try { localStorage.setItem("reviewWords", JSON.stringify(reviewWords)); } catch(e){}
+
+// 在頁面初始化時加入一個「解鎖音訊」按鈕（只需點一次）
+function initAudioUnlock() {
+  if (!('speechSynthesis' in window) && !('Audio' in window)) return;
+  const unlockId = 'audioUnlockBtn';
+  if (document.getElementById(unlockId)) return;
+
+  const btn = document.createElement('button');
+  btn.id = unlockId;
+  btn.textContent = '點我啟用語音';
+  btn.style.position = 'fixed';
+  btn.style.right = '12px';
+  btn.style.bottom = '12px';
+  btn.style.zIndex = 9999;
+  btn.style.padding = '10px 12px';
+  btn.style.borderRadius = '8px';
+  btn.style.background = '#fff';
+  btn.style.border = '1px solid #ccc';
+  btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.12)';
+  document.body.appendChild(btn);
+
+  btn.addEventListener('click', () => {
+    // 觸發一個短暫的語音或靜音音訊以解鎖播放權限
+    try {
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance(''); // 空字串也能觸發
+        window.speechSynthesis.speak(u);
+      } else {
+        const a = new Audio();
+        a.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA='; // 極短空白音
+        a.setAttribute('playsinline', '');
+        a.play().catch(()=>{});
+      }
+    } catch(e){ /* ignore */ }
+    // 點過就移除按鈕
+    btn.remove();
+  }, { once: true });
 }
 
+// 呼叫初始化（在 renderButtons 或頁面載入時執行一次）
+initAudioUnlock();
 /* ===== render ===== */
 function renderButtons(){
   buttonsDiv.innerHTML = '';
