@@ -136,29 +136,84 @@ const buttonsDiv = document.getElementById('buttons');
 const reviewArea = document.getElementById('reviewArea');
 
 /* ===== speak using SpeechSynthesis first ===== */
-function speak(text){
+// 優先使用 SpeechSynthesis，若不可用再退回 Audio
+function speak(text) {
+  // 優先使用瀏覽器內建語音合成
   if ('speechSynthesis' in window) {
     try {
+      // 取消任何正在播放的語音，避免重疊
       window.speechSynthesis.cancel();
+
       const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'th-TH';
+      utter.lang = 'th-TH'; // 設為泰語
       utter.rate = 0.95;
       utter.pitch = 1;
       utter.volume = 1;
+
+      // 若裝置沒有泰語語音，瀏覽器會選擇最接近的語音
       window.speechSynthesis.speak(utter);
       return;
-    } catch(e){ console.warn('speechSynthesis error', e); }
+    } catch (e) {
+      console.warn('speechSynthesis error', e);
+    }
   }
-  // fallback to audio URL
+
+  // 備援：使用 Google TTS 音檔（注意 CORS 與可用性）
   try {
-    const url = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" + encodeURIComponent(text) + "&tl=th";
+    const url = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=" +
+                encodeURIComponent(text) + "&tl=th";
     const audio = new Audio();
     audio.crossOrigin = "anonymous";
     audio.src = url;
-    audio.setAttribute('playsinline','');
-    audio.play().catch(()=>{});
-  } catch(e){ console.error(e); }
+    audio.setAttribute('playsinline', ''); // iOS inline 播放
+    audio.autoplay = true;
+    audio.play().catch(err => {
+      console.warn('Audio play failed', err);
+    });
+  } catch (err) {
+    console.error('TTS fallback error', err);
+  }
 }
+
+// 在頁面載入時呼叫一次以解鎖音訊播放權限
+function initAudioUnlock() {
+  // 已存在則不重複建立
+  if (document.getElementById('audioUnlockBtn')) return;
+
+  const btn = document.createElement('button');
+  btn.id = 'audioUnlockBtn';
+  btn.textContent = '點我啟用語音';
+  Object.assign(btn.style, {
+    position: 'fixed',
+    right: '12px',
+    bottom: '12px',
+    zIndex: 9999,
+    padding: '10px 12px',
+    borderRadius: '8px',
+    background: '#fff',
+    border: '1px solid #ccc',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
+  });
+  document.body.appendChild(btn);
+
+  btn.addEventListener('click', () => {
+    try {
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance(''); // 空字串觸發解鎖
+        window.speechSynthesis.speak(u);
+      } else {
+        const a = new Audio();
+        a.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
+        a.setAttribute('playsinline', '');
+        a.play().catch(()=>{});
+      }
+    } catch (e) { /* ignore */ }
+    btn.remove();
+  }, { once: true });
+}
+
+// 呼叫一次初始化
+initAudioUnlock();
 
 /* ===== render with long-press detection and explicit toggle button ===== */
 function renderButtons(){
